@@ -90,19 +90,14 @@ const AOAAntennas: React.FC = () => {
   const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
     if (type === 'antenna') {
       actions.setAntennas([...antennas, { ...featureData, range: calculatedAntennaRange }]);
-      // Do NOT deactivate interaction for manual antenna placement
     } else if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
-      setActiveInteraction(null); // Deactivate for barrier drawing
     } else if (type === 'switch') {
       actions.setSwitches([...switches, featureData]);
-      setActiveInteraction(null); // Deactivate for switch placement
     } else if (type === 'cableDuct') {
       actions.setCableDucts([...cableDucts, featureData]);
-      setActiveInteraction(null); // Deactivate for cable duct drawing
-    } else {
-      setActiveInteraction(null); // Deactivate for other types if they were ever added here
     }
+    setActiveInteraction(null);
   }, [actions, antennas, barriers, switches, cableDucts, calculatedAntennaRange]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
@@ -126,7 +121,7 @@ const AOAAntennas: React.FC = () => {
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.filter(c => c.id !== id));
     }
-    setActiveInteraction(null);
+    // Do NOT deactivate interaction for deletion
   }, [actions, antennas, barriers, switches, cableDucts]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {

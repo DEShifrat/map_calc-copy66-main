@@ -90,7 +90,7 @@ const ZoneTracking: React.FC = () => {
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.filter(c => c.id !== id));
     }
-    setActiveInteraction(null);
+    // Do NOT deactivate interaction for deletion
   }, [actions, beacons, antennas, zones, barriers, switches, cableDucts]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {

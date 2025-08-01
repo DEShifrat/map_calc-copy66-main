@@ -77,7 +77,7 @@ const BLEBeacons: React.FC = () => {
     } else if (type === 'barrier') {
       actions.setBarriers(barriers.filter(b => JSON.stringify(b) !== id));
     }
-    setActiveInteraction(null);
+    // Do NOT deactivate interaction for deletion
   }, [actions, beacons, barriers]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {
