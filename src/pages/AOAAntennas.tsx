@@ -15,25 +15,29 @@ import { Coordinate } from 'ol/coordinate';
 const calculateAntennaRange = (height: number, angleDegrees: number): number => {
   if (height <= 0) return 0;
 
-  const angleRadians = angleDegrees * (Math.PI / 180);
+  // Ensure angle is within a sensible range for this calculation (0 to 90 degrees)
+  // If angle is outside this, the physical interpretation changes or it's an error.
+  let clampedAngleDegrees = angleDegrees;
+  if (clampedAngleDegrees < 0) clampedAngleDegrees = 0;
+  if (clampedAngleDegrees > 90) clampedAngleDegrees = 90;
 
-  // Handle edge cases for angle
-  if (angleDegrees === 0) {
+  const angleRadians = clampedAngleDegrees * (Math.PI / 180);
+
+  if (clampedAngleDegrees === 0) {
     return 0; // Beam is perfectly vertical, horizontal range is 0
   }
-  if (angleDegrees === 90) {
+  if (clampedAngleDegrees === 90) {
     return 10000; // Beam is perfectly horizontal, effectively infinite range
   }
 
-  const tanAngle = Math.tan(angleRadians);
-  // For angles > 90 degrees, tan will be negative or approach negative infinity.
-  // We assume angleDegrees is between 0 and 90 for a meaningful horizontal range.
-  if (tanAngle < 0) {
-    return 10000; // Treat as very large range if angle is obtuse (pointing upwards)
-  }
-
-  return height * tanAngle; // Corrected calculation
+  // For angles between 0 and 90 (exclusive), tan(angleRadians) will be positive.
+  return height * Math.tan(angleRadians);
 };
+
+// Factor for automatic antenna placement step to ensure 3-antenna overlap in a square grid.
+// This factor (2 / sqrt(5) approx 0.894) ensures that a point midway along an edge of a square
+// formed by 4 antennas is covered by at least 3.
+const THREE_ANTENNA_OVERLAP_FACTOR = 2 / Math.sqrt(5);
 
 const AOAAntennas: React.FC = () => {
   const { state, actions } = useMap();
@@ -63,14 +67,18 @@ const AOAAntennas: React.FC = () => {
   const [activeInteraction, setActiveInteraction] = useState<MapInteractionType>(null);
   const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState(false);
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
-  const [antennaPlacementStepInput, setAntennaPlacementStepInput] = useState<number>(15);
   const [defaultAntennaHeightInput, setDefaultAntennaHeightInput] = useState<number>(3);
-  const [defaultAntennaAngleInput, setDefaultAntennaAngleInput] = useState<number>(0);
+  const [defaultAntennaAngleInput, setDefaultAntennaAngleInput] = useState<number>(45); // Default to 45 degrees for a more typical cone
 
   // Calculate the antenna range based on current height and angle inputs
   const calculatedAntennaRange = useMemo(() => {
     return calculateAntennaRange(defaultAntennaHeightInput, defaultAntennaAngleInput);
   }, [defaultAntennaHeightInput, defaultAntennaAngleInput]);
+
+  // Automatically calculate antenna placement step based on the calculated range
+  const antennaPlacementStepInput = useMemo(() => {
+    return calculatedAntennaRange * THREE_ANTENNA_OVERLAP_FACTOR;
+  }, [calculatedAntennaRange]);
 
   const handleInteractionChange = (interaction: MapInteractionType) => {
     setActiveInteraction(prev => (prev === interaction ? null : interaction));
@@ -385,10 +393,9 @@ const AOAAntennas: React.FC = () => {
                     <Input
                       id="antennaPlacementStep"
                       type="number"
-                      value={antennaPlacementStepInput}
-                      onChange={(e) => setAntennaPlacementStepInput(Number(e.target.value))}
-                      min="1"
-                      step="1"
+                      value={antennaPlacementStepInput.toFixed(2)}
+                      readOnly
+                      className="bg-gray-100 dark:bg-gray-800"
                     />
                   </div>
                   <div className="space-y-2">
