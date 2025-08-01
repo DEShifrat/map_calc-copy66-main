@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,16 +11,38 @@ import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
 
+// Helper function to calculate antenna range based on height and angle
+const calculateAntennaRange = (height: number, angleDegrees: number): number => {
+  if (height <= 0) return 0;
+
+  const angleRadians = angleDegrees * (Math.PI / 180);
+
+  // Handle edge cases for angle
+  if (angleDegrees === 0) {
+    return 10000; // Effectively infinite, set a large max range for practical purposes
+  }
+  if (angleDegrees === 90) {
+    return 0; // Pointing straight down, no horizontal range
+  }
+
+  const tanAngle = Math.tan(angleRadians);
+  if (tanAngle <= 0) { // Angle > 90 degrees or very small negative angle, pointing upwards or near horizontal
+    return 10000; // Treat as very large range
+  }
+
+  return height / tanAngle;
+};
+
 const AOAAntennas: React.FC = () => {
   const { state, actions } = useMap();
   const {
     mapImageSrc,
     mapWidthMeters,
     mapHeightMeters,
-    beacons, // Маяки могут быть неактивны, но их данные все равно в контексте
+    beacons,
     antennas,
     barriers,
-    zones, // Зоны могут быть неактивны, но их данные все равно в контексте
+    zones,
     switches,
     cableDucts,
     showBeacons,
@@ -39,10 +61,14 @@ const AOAAntennas: React.FC = () => {
   const [activeInteraction, setActiveInteraction] = useState<MapInteractionType>(null);
   const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState(false);
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
-  const [antennaPlacementStepInput, setAntennaPlacementStepInput] = useState<number>(15); // New state for antenna step
-  const [defaultAntennaHeightInput, setDefaultAntennaHeightInput] = useState<number>(3); // New state for default height
-  const [defaultAntennaAngleInput, setDefaultAntennaAngleInput] = useState<number>(0); // New state for default angle
-  const [defaultAntennaRangeInput, setDefaultAntennaRangeInput] = useState<number>(20); // New state for default range
+  const [antennaPlacementStepInput, setAntennaPlacementStepInput] = useState<number>(15);
+  const [defaultAntennaHeightInput, setDefaultAntennaHeightInput] = useState<number>(3);
+  const [defaultAntennaAngleInput, setDefaultAntennaAngleInput] = useState<number>(0);
+
+  // Calculate the antenna range based on current height and angle inputs
+  const calculatedAntennaRange = useMemo(() => {
+    return calculateAntennaRange(defaultAntennaHeightInput, defaultAntennaAngleInput);
+  }, [defaultAntennaHeightInput, defaultAntennaAngleInput]);
 
   const handleInteractionChange = (interaction: MapInteractionType) => {
     setActiveInteraction(prev => (prev === interaction ? null : interaction));
@@ -50,7 +76,8 @@ const AOAAntennas: React.FC = () => {
 
   const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
     if (type === 'antenna') {
-      actions.setAntennas([...antennas, featureData]);
+      // When manually adding an antenna, use the calculated range
+      actions.setAntennas([...antennas, { ...featureData, range: calculatedAntennaRange }]);
     } else if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
     } else if (type === 'switch') {
@@ -59,7 +86,7 @@ const AOAAntennas: React.FC = () => {
       actions.setCableDucts([...cableDucts, featureData]);
     }
     setActiveInteraction(null); // Deactivate interaction after drawing
-  }, [actions, antennas, barriers, switches, cableDucts]);
+  }, [actions, antennas, barriers, switches, cableDucts, calculatedAntennaRange]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
     if (type === 'antenna') {
@@ -176,13 +203,11 @@ const AOAAntennas: React.FC = () => {
       showError('Высота антенны должна быть положительным числом.');
       return;
     }
-    if (defaultAntennaRangeInput <= 0) {
-      showError('Радиус антенны должен быть положительным числом.');
-      return;
-    }
 
     const newAntennas: typeof antennas = [];
     let currentId = antennas.length > 0 ? Math.max(...antennas.map(a => parseInt(a.id.split('-')[1]))) + 1 : 1;
+
+    const calculatedRangeForAuto = calculateAntennaRange(defaultAntennaHeightInput, defaultAntennaAngleInput);
 
     for (let y = antennaPlacementStepInput / 2; y < mapHeightMeters; y += antennaPlacementStepInput) {
       for (let x = antennaPlacementStepInput / 2; x < mapWidthMeters; x += antennaPlacementStepInput) {
@@ -191,7 +216,7 @@ const AOAAntennas: React.FC = () => {
           position: [x, y],
           height: defaultAntennaHeightInput,
           angle: defaultAntennaAngleInput,
-          range: defaultAntennaRangeInput,
+          range: calculatedRangeForAuto, // Use the calculated range
           price: antennaPrice, // Use current antenna price from context
         });
       }
@@ -388,14 +413,13 @@ const AOAAntennas: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="defaultAntennaRange">Радиус (м)</Label>
+                    <Label>Радиус (м)</Label>
                     <Input
-                      id="defaultAntennaRange"
+                      id="calculatedAntennaRange"
                       type="number"
-                      value={defaultAntennaRangeInput}
-                      onChange={(e) => setDefaultAntennaRangeInput(Number(e.target.value))}
-                      min="1"
-                      step="1"
+                      value={calculatedAntennaRange.toFixed(2)}
+                      readOnly
+                      className="bg-gray-100 dark:bg-gray-800"
                     />
                   </div>
                 </div>
