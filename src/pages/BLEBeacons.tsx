@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
-import Polygon from 'ol/geom/Polygon'; // Import Polygon for adaptive placement
+import { isPointInsideAnyBarrier } from '@/lib/utils'; // Импортируем isPointInsideAnyBarrier
 
 const BLEBeacons: React.FC = () => {
   const { state, actions } = useMap();
@@ -161,13 +161,6 @@ const BLEBeacons: React.FC = () => {
     }
   }, [mapImageSrc, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, cablePricePerMeter, beaconPrice, antennaPrice]);
 
-  const isPointInsideAnyBarrier = useCallback((point: Coordinate): boolean => {
-    return barriers.some(barrierCoords => {
-      const polygon = new Polygon(barrierCoords);
-      return polygon.intersectsCoordinate(point);
-    });
-  }, [barriers]);
-
   const handleAutoCalculateBeacons = () => {
     if (beaconStepInput <= 0) {
       showError('Шаг маяков должен быть положительным числом.');
@@ -195,15 +188,8 @@ const BLEBeacons: React.FC = () => {
         if (currentX >= 0 && currentX <= mapWidthMeters && currentY >= 0 && currentY <= mapHeightMeters) {
           const newBeaconPosition: Coordinate = [currentX, currentY];
 
-          if (beaconPlacementType === 'adaptive') {
-            if (!isPointInsideAnyBarrier(newBeaconPosition)) {
-              newBeacons.push({
-                id: `beacon-${currentId++}`,
-                position: newBeaconPosition,
-                price: beaconPrice,
-              });
-            }
-          } else {
+          // Check if the point is inside any barrier
+          if (!isPointInsideAnyBarrier(newBeaconPosition, barriers)) {
             newBeacons.push({
               id: `beacon-${currentId++}`,
               position: newBeaconPosition,

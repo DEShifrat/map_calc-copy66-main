@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
+import { isPointInsideAnyBarrier } from '@/lib/utils'; // Импортируем isPointInsideAnyBarrier
 
 // Helper function to calculate antenna range based on height and angle
 const calculateAntennaRange = (height: number, angleDegrees: number): number => {
@@ -221,14 +222,18 @@ const AOAAntennas: React.FC = () => {
 
     for (let y = antennaPlacementStepInput / 2; y < mapHeightMeters; y += antennaPlacementStepInput) {
       for (let x = antennaPlacementStepInput / 2; x < mapWidthMeters; x += antennaPlacementStepInput) {
-        newAntennas.push({
-          id: `antenna-${currentId++}`,
-          position: [x, y],
-          height: defaultAntennaHeightInput,
-          angle: defaultAntennaAngleInput,
-          range: calculatedRangeForAuto, // Use the calculated range
-          price: antennaPrice, // Use current antenna price from context
-        });
+        const newAntennaPosition: Coordinate = [x, y];
+        // Check if the point is inside any barrier
+        if (!isPointInsideAnyBarrier(newAntennaPosition, barriers)) {
+          newAntennas.push({
+            id: `antenna-${currentId++}`,
+            position: newAntennaPosition,
+            height: defaultAntennaHeightInput,
+            angle: defaultAntennaAngleInput,
+            range: calculatedRangeForAuto, // Use the calculated range
+            price: antennaPrice, // Use current antenna price from context
+          });
+        }
       }
     }
     actions.setAntennas(newAntennas);
