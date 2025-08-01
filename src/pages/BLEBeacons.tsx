@@ -43,7 +43,7 @@ const BLEBeacons: React.FC = () => {
   } = state;
 
   const [activeInteraction, setActiveInteraction] = useState<MapInteractionType>(null);
-  const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState<boolean>(false); // Исправлен тип
+  const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState<boolean>(false);
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
   const [beaconStepInput, setBeaconStepInput] = useState<number>(5);
   const [beaconPlacementType, setBeaconPlacementType] = useState<'row' | 'chessboard' | 'triangular' | 'adaptive'>('row');
@@ -55,21 +55,19 @@ const BLEBeacons: React.FC = () => {
   const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
     if (type === 'beacon') {
       actions.setBeacons([...beacons, featureData]);
-      // Do NOT deactivate interaction for manual beacon placement
     } else if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
-      setActiveInteraction(null); // Deactivate for barrier drawing
+      setActiveInteraction(null);
     } else {
-      setActiveInteraction(null); // Deactivate for other types if they were ever added here
+      setActiveInteraction(null);
     }
   }, [actions, beacons, barriers]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.map(b => b.id === id ? { ...b, position: newPosition as Coordinate } : b));
-      // Do NOT deactivate interaction for manual beacon modification
     } else {
-      setActiveInteraction(null); // Deactivate for other types if they were ever added here
+      setActiveInteraction(null);
     }
   }, [actions, beacons]);
 
@@ -79,7 +77,6 @@ const BLEBeacons: React.FC = () => {
     } else if (type === 'barrier') {
       actions.setBarriers(barriers.filter(b => JSON.stringify(b) !== id));
     }
-    // Do NOT deactivate interaction for deletion
   }, [actions, beacons, barriers]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {

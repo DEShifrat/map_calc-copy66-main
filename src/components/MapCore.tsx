@@ -10,7 +10,7 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Polygon from 'ol/geom/Polygon';
 import LineString from 'ol/geom/LineString';
-import Circle from 'ol/geom/Circle'; // Добавлен импорт Circle
+import Circle from 'ol/geom/Circle';
 import Style from 'ol/style/Style';
 import Icon from 'ol/style/Icon';
 import Fill from 'ol/style/Fill';
@@ -20,8 +20,8 @@ import Text from 'ol/style/Text';
 import { Coordinate } from 'ol/coordinate';
 import { Draw, Modify, Snap, Interaction } from 'ol/interaction';
 import { showSuccess, showError } from '@/utils/toast';
-import { findClosestSegment } from '@/lib/utils'; // Импорт новой вспомогательной функции
-import { FeatureLike } from 'ol/Feature'; // Импорт FeatureLike
+import { findClosestSegment } from '@/lib/utils';
+import { FeatureLike } from 'ol/Feature';
 
 // --- Стили, определенные за пределами компонента для избежания проблем с инициализацией ---
 const beaconStyle = new Style({
@@ -151,7 +151,7 @@ interface Antenna {
 
 interface Zone {
   id: string;
-  polygon: Coordinate[][]; // Изменено с Coordinate[][][] на Coordinate[][]
+  polygon: Coordinate[][];
   beaconCount: number;
 }
 
@@ -193,7 +193,7 @@ interface MapCoreProps {
   mapHeightMeters: number;
   beacons: Beacon[];
   antennas: Antenna[];
-  barriers: Coordinate[][][]; // Изменено с Coordinate[][][][] на Coordinate[][][]
+  barriers: Coordinate[][][];
   zones: Zone[];
   switches: Switch[];
   cableDucts: CableDuct[];
@@ -208,10 +208,10 @@ interface MapCoreProps {
   activeInteraction: MapInteractionType;
   onFeatureAdd: (type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => void;
   onFeatureModify: (type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => void;
-  onFeatureDelete: (type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string, segmentIndex?: number) => void; // Updated onFeatureDelete to include segmentIndex
+  onFeatureDelete: (type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string, segmentIndex?: number) => void;
   onRescaleDrawEnd: (drawnLengthMeters: number) => void;
-  beaconPrice: number; // Passed for new beacon creation
-  antennaPrice: number; // Passed for new antenna creation
+  beaconPrice: number;
+  antennaPrice: number;
 }
 
 const MapCore: React.FC<MapCoreProps> = ({
@@ -243,7 +243,7 @@ const MapCore: React.FC<MapCoreProps> = ({
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapInstance, setMapInstance] = useState<Map | null>(null);
   const [hoveredFeatureId, setHoveredFeatureId] = useState<string | null>(null);
-  const [hoveredSegmentIndex, setHoveredSegmentIndex] = useState<number | null>(null); // Для отрезка кабель-канала
+  const [hoveredSegmentIndex, setHoveredSegmentIndex] = useState<number | null>(null);
 
   const beaconVectorSource = useRef(new VectorSource({ features: [] }));
   const beaconVectorLayer = useRef(new VectorLayer({ source: beaconVectorSource.current }));
@@ -280,7 +280,7 @@ const MapCore: React.FC<MapCoreProps> = ({
     }),
   }), []);
 
-  const getAntennaStyle = useCallback((feature: FeatureLike) => { // FeatureLike
+  const getAntennaStyle = useCallback((feature: FeatureLike) => {
     const styles: Style[] = [
       new Style({
         image: new Icon({
@@ -293,7 +293,7 @@ const MapCore: React.FC<MapCoreProps> = ({
 
     if (showAntennaRanges) {
       const geometry = feature.getGeometry();
-      if (geometry instanceof Point) { // Проверка на Point
+      if (geometry instanceof Point) {
         const position = geometry.getCoordinates();
         const range = feature.get('range');
         if (position && range !== undefined) {
@@ -315,12 +315,12 @@ const MapCore: React.FC<MapCoreProps> = ({
     return styles;
   }, [showAntennaRanges]);
 
-  const getCableDuctStyle = useCallback((feature: FeatureLike) => { // FeatureLike
+  const getCableDuctStyle = useCallback((feature: FeatureLike) => {
     const styles: Style[] = [cableDuctLineStyle];
 
     if (showCableDuctLengths) {
       const geometry = feature.getGeometry();
-      if (geometry instanceof LineString) { // Проверка на LineString
+      if (geometry instanceof LineString) {
         const coordinates = geometry.getCoordinates();
         for (let i = 0; i < coordinates.length - 1; i++) {
           const p1 = coordinates[i];
@@ -358,7 +358,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           const segmentGeometry = new LineString([coords[hoveredSegmentIndex], coords[hoveredSegmentIndex + 1]]);
           styles.push(new Style({
             geometry: segmentGeometry,
-            stroke: cableDuctHoverSegmentStyle.getStroke(), // Используем стиль для сегмента
+            stroke: cableDuctHoverSegmentStyle.getStroke(),
           }));
         }
       }
@@ -418,7 +418,7 @@ const MapCore: React.FC<MapCoreProps> = ({
   // Effects to update layer styles based on state changes
   useEffect(() => {
     if (mapInstance) {
-      beaconVectorLayer.current.setStyle((feature: FeatureLike) => { // FeatureLike
+      beaconVectorLayer.current.setStyle((feature: FeatureLike) => {
         const styles = [beaconStyle];
         if (feature.get('id') === hoveredFeatureId) {
           styles.push(hoverStyle);
@@ -431,7 +431,7 @@ const MapCore: React.FC<MapCoreProps> = ({
 
   useEffect(() => {
     if (mapInstance) {
-      antennaVectorLayer.current.setStyle((feature: FeatureLike) => { // FeatureLike
+      antennaVectorLayer.current.setStyle((feature: FeatureLike) => {
         const styles = getAntennaStyle(feature);
         if (feature.get('id') === hoveredFeatureId) {
           styles.push(hoverStyle);
@@ -444,7 +444,7 @@ const MapCore: React.FC<MapCoreProps> = ({
 
   useEffect(() => {
     if (mapInstance) {
-      barrierVectorLayer.current.setStyle((feature: FeatureLike) => { // FeatureLike
+      barrierVectorLayer.current.setStyle((feature: FeatureLike) => {
         const styles = [barrierStyle];
         if (feature.get('id') === hoveredFeatureId && (activeInteraction === 'deleteBarrier')) {
           styles.push(barrierHoverStyle);
@@ -457,13 +457,13 @@ const MapCore: React.FC<MapCoreProps> = ({
 
   useEffect(() => {
     if (mapInstance) {
-      zoneVectorLayer.current.setStyle((feature: FeatureLike) => { // FeatureLike
+      zoneVectorLayer.current.setStyle((feature: FeatureLike) => {
         const styles: Style[] = [zoneStyle];
         const beaconCount = feature.get('beaconCount');
-        const geometry = feature.getGeometry(); // Получаем геометрию
-        if (typeof beaconCount === 'number' && geometry instanceof Polygon) { // Проверяем, что это Polygon
+        const geometry = feature.getGeometry();
+        if (typeof beaconCount === 'number' && geometry instanceof Polygon) {
           styles.push(new Style({
-            geometry: geometry.getInteriorPoint(), // Вызываем getInteriorPoint на Polygon
+            geometry: geometry.getInteriorPoint(),
             text: new Text({
               text: beaconCount.toString(),
               fill: new Fill({ color: 'black' }),
@@ -483,7 +483,7 @@ const MapCore: React.FC<MapCoreProps> = ({
 
   useEffect(() => {
     if (mapInstance) {
-      switchVectorLayer.current.setStyle((feature: FeatureLike) => { // FeatureLike
+      switchVectorLayer.current.setStyle((feature: FeatureLike) => {
         const styles = [switchStyle];
         if (feature.get('id') === hoveredFeatureId) {
           styles.push(hoverStyle);
@@ -496,7 +496,7 @@ const MapCore: React.FC<MapCoreProps> = ({
 
   useEffect(() => {
     if (mapInstance) {
-      cableDuctVectorLayer.current.setStyle((feature: FeatureLike) => getCableDuctStyle(feature)); // FeatureLike
+      cableDuctVectorLayer.current.setStyle((feature: FeatureLike) => getCableDuctStyle(feature));
       cableDuctVectorLayer.current.changed();
     }
   }, [mapInstance, getCableDuctStyle]);
@@ -543,9 +543,9 @@ const MapCore: React.FC<MapCoreProps> = ({
   // Effect to update barrier features
   useEffect(() => {
     barrierVectorSource.current.clear();
-    barriers.forEach(coords => { // coords теперь Coordinate[][]
+    barriers.forEach(coords => {
       // Assign a unique ID to each barrier feature for deletion
-      const id = JSON.stringify(coords); // Using stringified coords as ID
+      const id = JSON.stringify(coords);
       const polygon = new Polygon(coords);
       const feature = new Feature({ geometry: polygon, id: id });
       barrierVectorSource.current.addFeature(feature);
@@ -556,7 +556,7 @@ const MapCore: React.FC<MapCoreProps> = ({
   useEffect(() => {
     zoneVectorSource.current.clear();
     zones.forEach(zone => {
-      const polygon = new Polygon(zone.polygon); // zone.polygon теперь Coordinate[][]
+      const polygon = new Polygon(zone.polygon);
       const feature = new Feature({ geometry: polygon, id: zone.id, beaconCount: zone.beaconCount });
       zoneVectorSource.current.addFeature(feature);
     });
@@ -627,7 +627,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           style: sketchStyle,
         });
         (newInteraction as Draw).on('drawend', (event: any) => {
-          const coords = event.feature.getGeometry()?.getCoordinates() as Coordinate[][]; // Теперь Coordinate[][]
+          const coords = event.feature.getGeometry()?.getCoordinates() as Coordinate[][];
           onFeatureAdd('barrier', coords);
           showSuccess('Барьер добавлен!');
         });
@@ -642,7 +642,7 @@ const MapCore: React.FC<MapCoreProps> = ({
         (newInteraction as Draw).on('drawend', (event: any) => {
           onFeatureAdd('zone', {
             id: `zone-${Date.now()}`,
-            polygon: event.feature.getGeometry()?.getCoordinates() as Coordinate[][], // Теперь Coordinate[][]
+            polygon: event.feature.getGeometry()?.getCoordinates() as Coordinate[][],
             beaconCount: 0,
           });
           showSuccess('Зона добавлена вручную!');
@@ -671,7 +671,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           style: sketchStyle,
         });
         (newInteraction as Modify).on('modifyend', (event: any) => {
-          event.features.forEach((feature: Feature<Point>) => { // Уточнен тип Feature
+          event.features.forEach((feature: Feature<Point>) => {
             const id = feature.get('id');
             const geometry = feature.getGeometry();
             if (id && geometry instanceof Point) {
@@ -688,7 +688,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           style: sketchStyle,
         });
         (newInteraction as Modify).on('modifyend', (event: any) => {
-          event.features.forEach((feature: Feature<Point>) => { // Уточнен тип Feature
+          event.features.forEach((feature: Feature<Point>) => {
             const id = feature.get('id');
             const geometry = feature.getGeometry();
             if (id && geometry instanceof Point) {
@@ -705,7 +705,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           style: sketchStyle,
         });
         (newInteraction as Modify).on('modifyend', (event: any) => {
-          event.features.forEach((feature: Feature<Point>) => { // Уточнен тип Feature
+          event.features.forEach((feature: Feature<Point>) => {
             const id = feature.get('id');
             const geometry = feature.getGeometry();
             if (id && geometry instanceof Point) {
@@ -722,7 +722,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           style: sketchStyle,
         });
         (newInteraction as Modify).on('modifyend', (event: any) => {
-          event.features.forEach((feature: Feature<LineString>) => { // Уточнен тип Feature
+          event.features.forEach((feature: Feature<LineString>) => {
             const id = feature.get('id');
             const geometry = feature.getGeometry();
             if (id && geometry instanceof LineString) {
@@ -763,7 +763,7 @@ const MapCore: React.FC<MapCoreProps> = ({
       case 'deleteZone':
       case 'deleteBarrier':
       case 'deleteSwitch':
-      case 'deleteCableDuct': // Обработка удаления отрезка кабель-канала
+      case 'deleteCableDuct':
         newClickListener = (event: any) => {
           console.log('MapCore: Click listener triggered for interaction:', activeInteraction);
           const coordinate = event.coordinate;
@@ -779,9 +779,9 @@ const MapCore: React.FC<MapCoreProps> = ({
             onFeatureAdd('antenna', {
               id: `antenna-${Date.now()}`,
               position: coordinate,
-              height: 2, // Default height
-              angle: 0, // Default angle
-              range: 10, // Default range
+              height: 2,
+              angle: 0,
+              range: 10,
               price: antennaPrice,
             });
             showSuccess('Антенна добавлена вручную!');
@@ -794,7 +794,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           } else if (activeInteraction === 'deleteBeacon') {
             mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
               const featureId = feature.get('id');
-              if (featureId && feature.getGeometry() instanceof Point) { // Проверка на Point
+              if (featureId && feature.getGeometry() instanceof Point) {
                 onFeatureDelete('beacon', featureId);
                 showSuccess('Маяк удален!');
                 return true;
@@ -807,7 +807,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           } else if (activeInteraction === 'deleteAntenna') {
             mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
               const featureId = feature.get('id');
-              if (featureId && feature.getGeometry() instanceof Point) { // Проверка на Point
+              if (featureId && feature.getGeometry() instanceof Point) {
                 onFeatureDelete('antenna', featureId);
                 showSuccess('Антенна удалена!');
                 return true;
@@ -820,7 +820,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           } else if (activeInteraction === 'deleteZone') {
             mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
               const featureId = feature.get('id');
-              if (featureId && feature.getGeometry() instanceof Polygon) { // Проверка на Polygon
+              if (featureId && feature.getGeometry() instanceof Polygon) {
                 onFeatureDelete('zone', featureId);
                 showSuccess('Зона удалена!');
                 return true;
@@ -833,7 +833,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           } else if (activeInteraction === 'deleteBarrier') {
             mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
               const featureId = feature.get('id');
-              if (featureId && feature.getGeometry() instanceof Polygon) { // Проверка на Polygon
+              if (featureId && feature.getGeometry() instanceof Polygon) {
                 onFeatureDelete('barrier', featureId);
                 showSuccess('Барьер удален!');
                 return true;
@@ -846,7 +846,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           } else if (activeInteraction === 'deleteSwitch') {
             mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
               const featureId = feature.get('id');
-              if (featureId && feature.getGeometry() instanceof Point) { // Проверка на Point
+              if (featureId && feature.getGeometry() instanceof Point) {
                 onFeatureDelete('switch', featureId);
                 showSuccess('Коммутатор удален!');
                 return true;
@@ -861,18 +861,18 @@ const MapCore: React.FC<MapCoreProps> = ({
               const featureId = feature.get('id');
               const geometry = feature.getGeometry();
               if (featureId && geometry instanceof LineString) {
-                const closestSegment = findClosestSegment(geometry, event.coordinate, 20); // Увеличиваем tolerance для удобства клика
+                const closestSegment = findClosestSegment(geometry, event.coordinate, 20);
                 if (closestSegment) {
                   console.log(`MapCore: Deleting cable duct segment. ID: ${featureId}, Segment Index: ${closestSegment.segmentIndex}`);
                   onFeatureDelete('cableDuct', featureId, closestSegment.segmentIndex);
                   showSuccess('Отрезок кабель-канала удален!');
-                  return true; // Останавливаем поиск после первого найденного
+                  return true;
                 }
               }
               return false;
             }, {
               layerFilter: (layer) => layer === cableDuctVectorLayer.current,
-              hitTolerance: 20, // Увеличиваем hitTolerance для удобства клика по линии
+              hitTolerance: 20,
             });
           }
         };
@@ -893,7 +893,7 @@ const MapCore: React.FC<MapCoreProps> = ({
       mapInstance.on('click', clickListenerRef.current);
     }
 
-    return cleanupInteractions; // Return cleanup function for useEffect
+    return cleanupInteractions;
   }, [
     mapInstance,
     activeInteraction,
@@ -912,7 +912,6 @@ const MapCore: React.FC<MapCoreProps> = ({
     if (!mapInstance) return;
 
     const handlePointerMove = (event: any) => {
-      // console.log('MapCore: Pointer move triggered.'); // Закомментировано, чтобы не засорять консоль
       let foundFeatureId: string | null = null;
       let foundSegmentIndex: number | null = null;
       const deletionModes = ['deleteBeacon', 'deleteAntenna', 'deleteZone', 'deleteBarrier', 'deleteSwitch', 'deleteCableDuct'];
@@ -921,14 +920,14 @@ const MapCore: React.FC<MapCoreProps> = ({
         mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
           const featureId = feature.get('id');
           if (featureId) {
-            const geomType = feature.getGeometry(); // Получаем геометрию
-            if (activeInteraction === 'deleteCableDuct' && geomType instanceof LineString) { // Проверка на LineString
+            const geomType = feature.getGeometry();
+            if (activeInteraction === 'deleteCableDuct' && geomType instanceof LineString) {
               const geometry = geomType as LineString;
-              const closestSegment = findClosestSegment(geometry, event.coordinate, 20); // Увеличиваем tolerance для наведения
+              const closestSegment = findClosestSegment(geometry, event.coordinate, 20);
               if (closestSegment) {
                 foundFeatureId = featureId;
                 foundSegmentIndex = closestSegment.segmentIndex;
-                return true; // Found a segment to highlight
+                return true;
               }
             } else if (
               (activeInteraction === 'deleteBeacon' && geomType instanceof Point && beacons.some(b => b.id === featureId)) ||
@@ -950,7 +949,7 @@ const MapCore: React.FC<MapCoreProps> = ({
             layer === barrierVectorLayer.current ||
             layer === switchVectorLayer.current ||
             layer === cableDuctVectorLayer.current,
-          hitTolerance: 20, // Увеличиваем hitTolerance
+          hitTolerance: 20,
         });
         setHoveredFeatureId(foundFeatureId);
         setHoveredSegmentIndex(foundSegmentIndex);

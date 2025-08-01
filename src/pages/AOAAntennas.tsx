@@ -13,7 +13,7 @@ import { Coordinate } from 'ol/coordinate';
 import LineString from 'ol/geom/LineString';
 import { isPointInsideAnyBarrier } from '@/lib/utils';
 import {
-  Antenna, Pencil, Trash2, Router, Cable, Square, Ruler, X, Undo2, Redo2, Link as LinkIcon // Добавлен LinkIcon
+  Antenna, Pencil, Trash2, Router, Cable, Square, Ruler, X, Undo2, Redo2, Link as LinkIcon
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -71,7 +71,7 @@ const AOAAntennas: React.FC = () => {
   } = state;
 
   const [activeInteraction, setActiveInteraction] = useState<MapInteractionType>(null);
-  const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState<boolean>(false); // Исправлен тип
+  const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState<boolean>(false);
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
   const [defaultAntennaHeightInput, setDefaultAntennaHeightInput] = useState<number>(3);
   const [defaultAntennaAngleInput, setDefaultAntennaAngleInput] = useState<number>(45);
@@ -91,29 +91,26 @@ const AOAAntennas: React.FC = () => {
   const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
     if (type === 'antenna') {
       actions.setAntennas([...antennas, { ...featureData, range: calculatedAntennaRange }]);
-      // Do NOT deactivate for manual antenna placement
     } else if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
-      setActiveInteraction(null); // Deactivate after one barrier draw
+      setActiveInteraction(null);
     } else if (type === 'switch') {
       actions.setSwitches([...switches, featureData]);
-      // Do NOT deactivate for manual switch placement
     } else if (type === 'cableDuct') {
       actions.setCableDucts([...cableDucts, featureData]);
-      setActiveInteraction(null); // Deactivate after one cable duct draw
+      setActiveInteraction(null);
     }
   }, [actions, antennas, barriers, switches, cableDucts, calculatedAntennaRange]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
     if (type === 'antenna') {
       actions.setAntennas(antennas.map(a => a.id === id ? { ...a, position: newPosition as Coordinate } : a));
-      // Do NOT deactivate interaction for manual antenna modification
     } else if (type === 'switch') {
       actions.setSwitches(switches.map(s => s.id === id ? { ...s, position: newPosition as Coordinate } : s));
-      setActiveInteraction(null); // Deactivate for switch modification
+      setActiveInteraction(null);
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.map(c => c.id === id ? { ...c, path: newPosition as Coordinate[] } : c));
-      setActiveInteraction(null); // Deactivate for cable duct modification
+      setActiveInteraction(null);
     }
   }, [actions, antennas, switches, cableDucts]);
 
@@ -127,7 +124,6 @@ const AOAAntennas: React.FC = () => {
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.filter(c => c.id !== id));
     }
-    // Do NOT deactivate interaction for deletion
   }, [actions, antennas, barriers, switches, cableDucts]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {

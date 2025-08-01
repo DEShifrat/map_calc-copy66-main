@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useMap } from '@/context/MapContext';
+import { useMap, Zone } from '@/context/MapContext'; // Импортируем Zone
 import MapCore, { MapInteractionType } from '@/components/MapCore';
 import MapControls from '@/components/MapControls';
 import RescaleDialog from '@/components/RescaleDialog';
@@ -42,7 +42,7 @@ const ZoneTracking: React.FC = () => {
   } = state;
 
   const [activeInteraction, setActiveInteraction] = useState<MapInteractionType>(null);
-  const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState<boolean>(false); // Исправлен тип
+  const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState<boolean>(false);
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
   const [zoneSizeInput, setZoneSizeInput] = useState<number>(10);
 
@@ -197,20 +197,20 @@ const ZoneTracking: React.FC = () => {
         const x2 = Math.min(x + zoneSizeInput, mapWidthMeters);
         const y2 = Math.min(y + zoneSizeInput, mapHeightMeters);
 
-        const polygonCoords: Coordinate[][] = [[ // Изменено с Coordinate[][][] на Coordinate[][]
+        const polygonCoords: Coordinate[][] = [
           [x1, y1] as Coordinate,
           [x2, y1] as Coordinate,
           [x2, y2] as Coordinate,
           [x1, y2] as Coordinate,
           [x1, y1] as Coordinate // Close the polygon
-        ]];
+        ];
 
-        const olPolygon = new Polygon(polygonCoords[0]); // Передаем Coordinate[][]
+        const olPolygon = new Polygon([polygonCoords]); // Передаем Coordinate[][]
         const centerCoordinate = olPolygon.getInteriorPoint().getCoordinates();
 
         newZones.push({
           id: `zone-${currentZoneId++}`,
-          polygon: polygonCoords,
+          polygon: [polygonCoords], // Оборачиваем в массив, так как Polygon ожидает массив колец
           beaconCount: 1,
         });
 

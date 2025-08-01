@@ -14,7 +14,7 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Polygon from 'ol/geom/Polygon';
 import LineString from 'ol/geom/LineString';
-import Circle from 'ol/geom/Circle'; // Добавлен импорт Circle
+import Circle from 'ol/geom/Circle';
 import Style from 'ol/style/Style';
 import Icon from 'ol/style/Icon';
 import Fill from 'ol/style/Fill';
@@ -22,7 +22,7 @@ import Stroke from 'ol/style/Stroke';
 import CircleStyle from 'ol/style/Circle';
 import Text from 'ol/style/Text';
 import { Coordinate } from 'ol/coordinate';
-import { FeatureLike } from 'ol/Feature'; // Импорт FeatureLike
+import { FeatureLike } from 'ol/Feature';
 
 // Интерфейсы для данных карты (повторяются из MapContext для ясности)
 interface Beacon {
@@ -43,7 +43,7 @@ interface Antenna {
 
 interface Zone {
   id: string;
-  polygon: Coordinate[][]; // Изменено с Coordinate[][][] на Coordinate[][]
+  polygon: Coordinate[][];
   beaconCount: number;
 }
 
@@ -64,7 +64,7 @@ interface MapControlsProps {
   mapHeightMeters: number;
   beacons: Beacon[];
   antennas: Antenna[];
-  barriers: Coordinate[][][]; // Изменено с Coordinate[][][][] на Coordinate[][][]
+  barriers: Coordinate[][][];
   zones: Zone[];
   switches: Switch[];
   cableDucts: CableDuct[];
@@ -133,7 +133,7 @@ const cableDuctLineStyle = new Style({
   }),
 });
 
-const getAntennaStyle = (feature: FeatureLike, showAntennaRanges: boolean) => { // FeatureLike
+const getAntennaStyle = (feature: FeatureLike, showAntennaRanges: boolean) => {
   const styles: Style[] = [
     new Style({
       image: new Icon({
@@ -146,7 +146,7 @@ const getAntennaStyle = (feature: FeatureLike, showAntennaRanges: boolean) => { 
 
   if (showAntennaRanges) {
     const geometry = feature.getGeometry();
-    if (geometry instanceof Point) { // Проверка на Point
+    if (geometry instanceof Point) {
       const position = geometry.getCoordinates();
       const range = feature.get('range');
       if (position && range !== undefined) {
@@ -168,12 +168,12 @@ const getAntennaStyle = (feature: FeatureLike, showAntennaRanges: boolean) => { 
   return styles;
 };
 
-const getCableDuctStyle = (feature: FeatureLike, showCableDuctLengths: boolean) => { // FeatureLike
+const getCableDuctStyle = (feature: FeatureLike, showCableDuctLengths: boolean) => {
   const styles: Style[] = [cableDuctLineStyle];
 
   if (showCableDuctLengths) {
     const geometry = feature.getGeometry();
-    if (geometry instanceof LineString) { // Проверка на LineString
+    if (geometry instanceof LineString) {
       const coordinates = geometry.getCoordinates();
       for (let i = 0; i < coordinates.length - 1; i++) {
         const p1 = coordinates[i];
@@ -343,13 +343,13 @@ const MapControls: React.FC<MapControlsProps> = ({
     exportAntennaLayer.setVisible(showAntennas);
 
     const exportBarrierLayer = new VectorLayer({
-      source: new VectorSource({ features: barriers.map(b => new Feature({ geometry: new Polygon(b) })) }), // b теперь Coordinate[][]
+      source: new VectorSource({ features: barriers.map(b => new Feature({ geometry: new Polygon(b) })) }),
       style: barrierStyle,
     });
     exportBarrierLayer.setVisible(showBarriers);
 
     const exportZoneLayer = new VectorLayer({
-      source: new VectorSource({ features: zones.map(z => new Feature({ geometry: new Polygon(z.polygon), id: z.id, beaconCount: z.beaconCount })) }), // z.polygon теперь Coordinate[][]
+      source: new VectorSource({ features: zones.map(z => new Feature({ geometry: new Polygon(z.polygon), id: z.id, beaconCount: z.beaconCount })) }),
       style: zoneStyle,
     });
     exportZoneLayer.setVisible(showZones);
@@ -449,7 +449,7 @@ const MapControls: React.FC<MapControlsProps> = ({
             // Find the main duct that contains this connection point
             const connectedMainDuct = cableDucts.find(duct =>
                 duct.type === 'main' &&
-                new LineString(duct.path).getClosestPoint(pointOnMainDuct).every((val, i) => Math.abs(val - pointOnMainDuct[i]) < 0.01) // Check if point is on the line with tolerance
+                new LineString(duct.path).getClosestPoint(pointOnMainDuct).every((val, i) => Math.abs(val - pointOnMainDuct[i]) < 0.01)
             );
 
             if (connectedMainDuct) {
@@ -494,7 +494,7 @@ const MapControls: React.FC<MapControlsProps> = ({
 
   const totalMapArea = mapWidthMeters * mapHeightMeters;
   const totalBarrierArea = barriers.reduce((sum, coords) => {
-    const polygon = new Polygon(coords); // coords теперь Coordinate[][]
+    const polygon = new Polygon(coords);
     return sum + polygon.getArea();
   }, 0);
   const movableArea = totalMapArea - totalBarrierArea;

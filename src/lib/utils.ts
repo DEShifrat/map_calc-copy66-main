@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import Polygon from 'ol/geom/Polygon';
-import LineString from 'ol/geom/LineString'; // Добавлен импорт LineString
+import LineString from 'ol/geom/LineString';
 import { Coordinate } from 'ol/coordinate';
 
 export function cn(...inputs: ClassValue[]) {
@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Helper function to check if a point is inside any of the given barriers
-export const isPointInsideAnyBarrier = (point: Coordinate, barriers: Coordinate[][][]): boolean => { // Изменено с Coordinate[][][][] на Coordinate[][][]
+export const isPointInsideAnyBarrier = (point: Coordinate, barriers: Coordinate[][][]): boolean => {
   return barriers.some(barrierCoords => {
     const polygon = new Polygon(barrierCoords); // barrierCoords теперь Coordinate[][]
     return polygon.intersectsCoordinate(point);

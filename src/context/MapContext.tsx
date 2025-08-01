@@ -18,7 +18,7 @@ interface Antenna {
   price?: number;
 }
 
-interface Zone {
+export interface Zone { // Добавлен export
   id: string;
   polygon: Coordinate[][]; // Изменено с Coordinate[][][] на Coordinate[][]
   beaconCount: number;
@@ -90,7 +90,7 @@ type MapHistoryAction =
   | { type: 'REDO' }
   | { type: 'RESET_MAP_DATA' }
   | { type: 'LOAD_CONFIGURATION'; payload: SavedMapConfig }
-  | { type: 'DELETE_CABLE_DUCT_SEGMENT'; payload: { id: string; segmentIndex: number } }; // Новое действие для удаления отрезка
+  | { type: 'DELETE_CABLE_DUCT_SEGMENT'; payload: { id: string; segmentIndex: number } };
 
 const MAX_HISTORY_SIZE = 20; // Максимальное количество состояний в истории
 
@@ -301,7 +301,7 @@ interface MapActions {
   setMapDimensions: (width: number, height: number) => void;
   setBeacons: (beacons: Beacon[]) => void;
   setAntennas: (antennas: Antenna[]) => void;
-  setBarriers: (barriers: Coordinate[][][]) => void; // Изменено с Coordinate[][][][] на Coordinate[][][]
+  setBarriers: (barriers: Coordinate[][][]) => void;
   setZones: (zones: Zone[]) => void;
   setSwitches: (switches: Switch[]) => void;
   setCableDucts: (cableDucts: CableDuct[]) => void;
@@ -320,9 +320,9 @@ interface MapActions {
   loadMapConfiguration: (config: SavedMapConfig) => void;
   undo: () => void;
   redo: () => void;
-  canUndo: boolean; // Добавлено для управления состоянием кнопки
-  canRedo: boolean; // Добавлено для управления состоянием кнопки
-  deleteCableDuctSegment: (id: string, segmentIndex: number) => void; // Новое действие
+  canUndo: boolean;
+  canRedo: boolean;
+  deleteCableDuctSegment: (id: string, segmentIndex: number) => void;
 }
 
 const MapContext = createContext<{ state: MapState; actions: MapActions } | undefined>(undefined);
@@ -357,7 +357,7 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     canUndo: historyState.historyIndex > 0,
     canRedo: historyState.historyIndex < historyState.history.length - 1,
     deleteCableDuctSegment: (id, segmentIndex) => dispatch({ type: 'DELETE_CABLE_DUCT_SEGMENT', payload: { id, segmentIndex } }),
-  }), [historyState]); // Зависимости для useMemo
+  }), [historyState]);
 
   return (
     <MapContext.Provider value={{ state: historyState.current, actions }}>
