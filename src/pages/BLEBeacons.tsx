@@ -309,6 +309,14 @@ const BLEBeacons: React.FC = () => {
                     Отменить действие
                   </Button>
                 </div>
+                <div className="grid grid-cols-2 gap-2 mt-4">
+                  <Button onClick={actions.undo} disabled={!actions.canUndo} variant="outline">
+                    Отменить
+                  </Button>
+                  <Button onClick={actions.redo} disabled={!actions.canRedo} variant="outline">
+                    Повторить
+                  </Button>
+                </div>
               </div>
 
               <div className="p-4 border rounded-md">

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useCallback, ReactNode } from 'react';
+import React, { createContext, useReducer, useContext, useCallback, ReactNode, useMemo } from 'react';
 import { Coordinate } from 'ol/coordinate';
 
 // Определения интерфейсов
@@ -60,35 +60,7 @@ interface MapState {
   showCableDuctLengths: boolean;
 }
 
-// Интерфейс для функций обновления состояния
-interface MapActions {
-  setMapImageSrc: (src: string | null) => void;
-  setMapDimensions: (width: number, height: number) => void;
-  setBeacons: (beacons: Beacon[]) => void;
-  setAntennas: (antennas: Antenna[]) => void;
-  setBarriers: (barriers: Coordinate[][][][]) => void;
-  setZones: (zones: Zone[]) => void;
-  setSwitches: (switches: Switch[]) => void;
-  setCableDucts: (cableDucts: CableDuct[]) => void;
-  setBeaconPrice: (price: number) => void;
-  setAntennaPrice: (price: number) => void;
-  setCablePricePerMeter: (price: number) => void;
-  // Visibility toggles
-  toggleShowBeacons: () => void;
-  toggleShowAntennas: () => void;
-  toggleShowBarriers: () => void;
-  toggleShowAntennaRanges: () => void;
-  toggleShowZones: () => void;
-  toggleShowSwitches: () => void;
-  toggleShowCableDucts: () => void;
-  toggleShowCableDuctLengths: () => void;
-  // Reset all map data
-  resetMapData: () => void;
-  // Load configuration
-  loadMapConfiguration: (config: SavedMapConfig) => void;
-}
-
-// Define the structure for the saved configuration (same as in Index.tsx)
+// Интерфейс для сохраненной конфигурации
 interface SavedMapConfig {
   mapImageSrc: string;
   mapWidthMeters: number;
@@ -103,6 +75,23 @@ interface SavedMapConfig {
   defaultBeaconPrice?: number;
   defaultAntennaPrice?: number;
 }
+
+// Состояние для управления историей
+interface MapHistoryState {
+  current: MapState;
+  history: MapState[];
+  historyIndex: number;
+}
+
+// Типы действий для редьюсера
+type MapHistoryAction =
+  | { type: 'UPDATE_STATE'; payload: Partial<MapState> }
+  | { type: 'UNDO' }
+  | { type: 'REDO' }
+  | { type: 'RESET_MAP_DATA' }
+  | { type: 'LOAD_CONFIGURATION'; payload: SavedMapConfig };
+
+const MAX_HISTORY_SIZE = 20; // Максимальное количество состояний в истории
 
 const defaultMapState: MapState = {
   mapImageSrc: null,
@@ -127,35 +116,56 @@ const defaultMapState: MapState = {
   showCableDuctLengths: true,
 };
 
-const MapContext = createContext<{ state: MapState; actions: MapActions } | undefined>(undefined);
-
-export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [mapState, setMapState] = useState<MapState>(defaultMapState);
-
-  const actions: MapActions = {
-    setMapImageSrc: useCallback((src) => setMapState(prev => ({ ...prev, mapImageSrc: src })), []),
-    setMapDimensions: useCallback((width, height) => setMapState(prev => ({ ...prev, mapWidthMeters: width, mapHeightMeters: height })), []),
-    setBeacons: useCallback((beacons) => setMapState(prev => ({ ...prev, beacons })), []),
-    setAntennas: useCallback((antennas) => setMapState(prev => ({ ...prev, antennas })), []),
-    setBarriers: useCallback((barriers) => setMapState(prev => ({ ...prev, barriers })), []),
-    setZones: useCallback((zones) => setMapState(prev => ({ ...prev, zones })), []),
-    setSwitches: useCallback((switches) => setMapState(prev => ({ ...prev, switches })), []),
-    setCableDucts: useCallback((cableDucts) => setMapState(prev => ({ ...prev, cableDucts })), []),
-    setBeaconPrice: useCallback((price) => setMapState(prev => ({ ...prev, beaconPrice: price })), []),
-    setAntennaPrice: useCallback((price) => setMapState(prev => ({ ...prev, antennaPrice: price })), []),
-    setCablePricePerMeter: useCallback((price) => setMapState(prev => ({ ...prev, cablePricePerMeter: price })), []),
-    toggleShowBeacons: useCallback(() => setMapState(prev => ({ ...prev, showBeacons: !prev.showBeacons })), []),
-    toggleShowAntennas: useCallback(() => setMapState(prev => ({ ...prev, showAntennas: !prev.showAntennas })), []),
-    toggleShowBarriers: useCallback(() => setMapState(prev => ({ ...prev, showBarriers: !prev.showBarriers })), []),
-    toggleShowAntennaRanges: useCallback(() => setMapState(prev => ({ ...prev, showAntennaRanges: !prev.showAntennaRanges })), []),
-    toggleShowZones: useCallback(() => setMapState(prev => ({ ...prev, showZones: !prev.showZones })), []),
-    toggleShowSwitches: useCallback(() => setMapState(prev => ({ ...prev, showSwitches: !prev.showSwitches })), []),
-    toggleShowCableDucts: useCallback(() => setMapState(prev => ({ ...prev, showCableDucts: !prev.showCableDucts })), []),
-    toggleShowCableDuctLengths: useCallback(() => setMapState(prev => ({ ...prev, showCableDuctLengths: !prev.showCableDuctLengths })), []),
-    resetMapData: useCallback(() => setMapState(defaultMapState), []),
-    loadMapConfiguration: useCallback((config: SavedMapConfig) => {
-      setMapState(prev => ({
-        ...prev,
+// Редьюсер для управления состоянием карты и историей
+const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): MapHistoryState => {
+  switch (action.type) {
+    case 'UPDATE_STATE': {
+      const newCurrentState = { ...state.current, ...action.payload };
+      // Если мы не в конце истории, обрезаем ее
+      const newHistory = state.history.slice(0, state.historyIndex + 1);
+      newHistory.push(newCurrentState);
+      // Ограничиваем размер истории
+      const limitedHistory = newHistory.slice(Math.max(0, newHistory.length - MAX_HISTORY_SIZE));
+      const newIndex = limitedHistory.length - 1;
+      return {
+        current: newCurrentState,
+        history: limitedHistory,
+        historyIndex: newIndex,
+      };
+    }
+    case 'UNDO': {
+      if (state.historyIndex > 0) {
+        const newIndex = state.historyIndex - 1;
+        return {
+          ...state,
+          current: state.history[newIndex],
+          historyIndex: newIndex,
+        };
+      }
+      return state;
+    }
+    case 'REDO': {
+      if (state.historyIndex < state.history.length - 1) {
+        const newIndex = state.historyIndex + 1;
+        return {
+          ...state,
+          current: state.history[newIndex],
+          historyIndex: newIndex,
+        };
+      }
+      return state;
+    }
+    case 'RESET_MAP_DATA': {
+      return {
+        current: defaultMapState,
+        history: [defaultMapState],
+        historyIndex: 0,
+      };
+    }
+    case 'LOAD_CONFIGURATION': {
+      const config = action.payload;
+      const loadedState: MapState = {
+        ...defaultMapState, // Начинаем с дефолтного состояния, чтобы убедиться, что все свойства присутствуют
         mapImageSrc: config.mapImageSrc,
         mapWidthMeters: config.mapWidthMeters,
         mapHeightMeters: config.mapHeightMeters,
@@ -168,12 +178,98 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         cablePricePerMeter: config.cablePricePerMeter ?? 1,
         beaconPrice: config.defaultBeaconPrice ?? 10,
         antennaPrice: config.defaultAntennaPrice ?? 50,
-      }));
-    }, []),
-  };
+        // Сохраняем текущие состояния видимости слоев
+        showBeacons: state.current.showBeacons,
+        showAntennas: state.current.showAntennas,
+        showBarriers: state.current.showBarriers,
+        showAntennaRanges: state.current.showAntennaRanges,
+        showZones: state.current.showZones,
+        showSwitches: state.current.showSwitches,
+        showCableDucts: state.current.showCableDucts,
+        showCableDuctLengths: state.current.showCableDuctLengths,
+      };
+      return {
+        current: loadedState,
+        history: [loadedState],
+        historyIndex: 0,
+      };
+    }
+    default:
+      return state;
+  }
+};
+
+// Начальное состояние для редьюсера
+const initialMapHistoryState: MapHistoryState = {
+  current: defaultMapState,
+  history: [defaultMapState],
+  historyIndex: 0,
+};
+
+// Интерфейс для функций действий, доступных через контекст
+interface MapActions {
+  setMapImageSrc: (src: string | null) => void;
+  setMapDimensions: (width: number, height: number) => void;
+  setBeacons: (beacons: Beacon[]) => void;
+  setAntennas: (antennas: Antenna[]) => void;
+  setBarriers: (barriers: Coordinate[][][][]) => void;
+  setZones: (zones: Zone[]) => void;
+  setSwitches: (switches: Switch[]) => void;
+  setCableDucts: (cableDucts: CableDuct[]) => void;
+  setBeaconPrice: (price: number) => void;
+  setAntennaPrice: (price: number) => void;
+  setCablePricePerMeter: (price: number) => void;
+  toggleShowBeacons: () => void;
+  toggleShowAntennas: () => void;
+  toggleShowBarriers: () => void;
+  toggleShowAntennaRanges: () => void;
+  toggleShowZones: () => void;
+  toggleShowSwitches: () => void;
+  toggleShowCableDucts: () => void;
+  toggleShowCableDuctLengths: () => void;
+  resetMapData: () => void;
+  loadMapConfiguration: (config: SavedMapConfig) => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean; // Добавлено для управления состоянием кнопки
+  canRedo: boolean; // Добавлено для управления состоянием кнопки
+}
+
+const MapContext = createContext<{ state: MapState; actions: MapActions } | undefined>(undefined);
+
+export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [historyState, dispatch] = useReducer(mapHistoryReducer, initialMapHistoryState);
+
+  const actions: MapActions = useMemo(() => ({
+    setMapImageSrc: (src) => dispatch({ type: 'UPDATE_STATE', payload: { mapImageSrc: src } }),
+    setMapDimensions: (width, height) => dispatch({ type: 'UPDATE_STATE', payload: { mapWidthMeters: width, mapHeightMeters: height } }),
+    setBeacons: (beacons) => dispatch({ type: 'UPDATE_STATE', payload: { beacons } }),
+    setAntennas: (antennas) => dispatch({ type: 'UPDATE_STATE', payload: { antennas } }),
+    setBarriers: (barriers) => dispatch({ type: 'UPDATE_STATE', payload: { barriers } }),
+    setZones: (zones) => dispatch({ type: 'UPDATE_STATE', payload: { zones } }),
+    setSwitches: (switches) => dispatch({ type: 'UPDATE_STATE', payload: { switches } }),
+    setCableDucts: (cableDucts) => dispatch({ type: 'UPDATE_STATE', payload: { cableDucts } }),
+    setBeaconPrice: (price) => dispatch({ type: 'UPDATE_STATE', payload: { beaconPrice: price } }),
+    setAntennaPrice: (price) => dispatch({ type: 'UPDATE_STATE', payload: { antennaPrice: price } }),
+    setCablePricePerMeter: (price) => dispatch({ type: 'UPDATE_STATE', payload: { cablePricePerMeter: price } }),
+    toggleShowBeacons: () => dispatch({ type: 'UPDATE_STATE', payload: { showBeacons: !historyState.current.showBeacons } }),
+    toggleShowAntennas: () => dispatch({ type: 'UPDATE_STATE', payload: { showAntennas: !historyState.current.showAntennas } }),
+    toggleShowBarriers: () => dispatch({ type: 'UPDATE_STATE', payload: { showBarriers: !historyState.current.showBarriers } }),
+    toggleShowAntennaRanges: () => dispatch({ type: 'UPDATE_STATE', payload: { showAntennaRanges: !historyState.current.showAntennaRanges } }),
+    toggleShowZones: () => dispatch({ type: 'UPDATE_STATE', payload: { showZones: !historyState.current.showZones } }),
+    toggleShowSwitches: () => dispatch({ type: 'UPDATE_STATE', payload: { showSwitches: !historyState.current.showSwitches } }),
+    toggleShowCableDucts: () => dispatch({ type: 'UPDATE_STATE', payload: { showCableDucts: !historyState.current.showCableDucts } }),
+    toggleShowCableDuctLengths: () => dispatch({ type: 'UPDATE_STATE', payload: { showCableDuctLengths: !historyState.current.showCableDuctLengths } }),
+    resetMapData: () => dispatch({ type: 'RESET_MAP_DATA' }),
+    loadMapConfiguration: (config) => dispatch({ type: 'LOAD_CONFIGURATION', payload: config }),
+    undo: () => dispatch({ type: 'UNDO' }),
+    redo: () => dispatch({ type: 'REDO' }),
+    canUndo: historyState.historyIndex > 0,
+    canRedo: historyState.historyIndex < historyState.history.length - 1,
+  }), [historyState]); // Зависимости для useMemo
 
   return (
-    <MapContext.Provider value={{ state: mapState, actions }}>
+    <MapContext.Provider value={{ state: historyState.current, actions }}>
       {children}
     </MapContext.Provider>
   );
