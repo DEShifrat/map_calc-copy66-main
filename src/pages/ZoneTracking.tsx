@@ -45,7 +45,8 @@ const ZoneTracking: React.FC = () => {
   // Default antenna properties for auto-placement in zones
   const defaultAntennaHeight = 3;
   const defaultAntennaAngle = 0;
-  const defaultAntennaRange = 20;
+  // Радиус зональной антенны будет равен половине размера зоны
+  const defaultAntennaRange = zoneSizeInput / 2; 
 
   const handleInteractionChange = (interaction: MapInteractionType) => {
     setActiveInteraction(prev => (prev === interaction ? null : interaction));
@@ -60,14 +61,18 @@ const ZoneTracking: React.FC = () => {
       actions.setSwitches([...switches, featureData]);
     } else if (type === 'cableDuct') {
       actions.setCableDucts([...cableDucts, featureData]);
+    } else if (type === 'antenna') {
+      // При ручном добавлении антенны на этой странице, она будет зональной
+      actions.setAntennas([...antennas, { ...featureData, type: 'zonal' }]);
     }
     setActiveInteraction(null); // Deactivate interaction after drawing
-  }, [actions, barriers, zones, switches, cableDucts]);
+  }, [actions, barriers, zones, switches, cableDucts, antennas]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.map(b => b.id === id ? { ...b, position: newPosition as Coordinate } : b));
     } else if (type === 'antenna') {
+      // Сохраняем существующий тип антенны при модификации
       actions.setAntennas(antennas.map(a => a.id === id ? { ...a, position: newPosition as Coordinate } : a));
     } else if (type === 'switch') {
       actions.setSwitches(switches.map(s => s.id === id ? { ...s, position: newPosition as Coordinate } : s));
@@ -217,8 +222,9 @@ const ZoneTracking: React.FC = () => {
           position: center,
           height: defaultAntennaHeight,
           angle: defaultAntennaAngle,
-          range: defaultAntennaRange,
+          range: zoneSizeInput / 2, // Радиус равен половине размера зоны
           price: antennaPrice,
+          type: 'zonal', // Устанавливаем тип как 'zonal'
         });
       }
     }
@@ -314,6 +320,24 @@ const ZoneTracking: React.FC = () => {
                     variant={activeInteraction === 'deleteZone' ? 'destructive' : 'outline'}
                   >
                     Удалить зону
+                  </Button>
+                  <Button
+                    onClick={() => handleInteractionChange('manualAntenna')} {/* Добавляем кнопку для ручного добавления зональных антенн */}
+                    variant={activeInteraction === 'manualAntenna' ? 'default' : 'outline'}
+                  >
+                    Добавить антенну
+                  </Button>
+                  <Button
+                    onClick={() => handleInteractionChange('editAntenna')}
+                    variant={activeInteraction === 'editAntenna' ? 'default' : 'outline'}
+                  >
+                    Редактировать антенну
+                  </Button>
+                  <Button
+                    onClick={() => handleInteractionChange('deleteAntenna')}
+                    variant={activeInteraction === 'deleteAntenna' ? 'destructive' : 'outline'}
+                  >
+                    Удалить антенну
                   </Button>
                   <Button
                     onClick={() => handleInteractionChange('manualSwitch')}
