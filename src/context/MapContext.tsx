@@ -197,17 +197,21 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
     }
     case 'DELETE_CABLE_DUCT_SEGMENT': {
       const { id, segmentIndex } = action.payload;
+      console.log('DELETE_CABLE_DUCT_SEGMENT:', { id, segmentIndex, currentDucts: state.current.cableDucts });
+
       const updatedCableDucts = state.current.cableDucts.flatMap(duct => {
         if (duct.id === id) {
           const path = [...duct.path];
+          console.log(`  Processing duct ${duct.id}, path length: ${path.length}, segmentIndex: ${segmentIndex}`);
+
           if (path.length < 2) {
-            // Should not happen for a valid line, but handle defensively
+            console.log('    Duct has less than 2 points, removing it.');
             return []; // Remove this duct if it has no segments
           }
 
           if (path.length === 2) {
-            // Only one segment, remove the whole duct
-            return [];
+            console.log('    Duct has exactly 2 points (single segment), removing it.');
+            return []; // Only one segment, remove the whole duct
           }
 
           // Split the path
@@ -215,25 +219,34 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
           const firstPart = path.slice(0, segmentIndex + 1);
           const secondPart = path.slice(segmentIndex + 1);
 
+          console.log('    Original path:', path);
+          console.log('    First part:', firstPart);
+          console.log('    Second part:', secondPart);
+
           if (firstPart.length >= 2) {
+            const newId1 = `${duct.id}-part1-${Date.now()}`;
             newDucts.push({
-              id: `${duct.id}-part1-${Date.now()}`, // Generate new ID for part
+              id: newId1,
               path: firstPart,
               type: duct.type,
             });
+            console.log('    Added first part:', newId1, firstPart);
           }
           if (secondPart.length >= 2) {
+            const newId2 = `${duct.id}-part2-${Date.now() + 1}`;
             newDucts.push({
-              id: `${duct.id}-part2-${Date.now() + 1}`, // Generate new ID for part
+              id: newId2,
               path: secondPart,
               type: duct.type,
             });
+            console.log('    Added second part:', newId2, secondPart);
           }
+          console.log('    New ducts from split:', newDucts);
           return newDucts; // Replace original duct with new parts (or nothing)
         }
         return [duct]; // Keep other ducts as is
       });
-
+      console.log('Final updatedCableDucts:', updatedCableDucts);
       return mapHistoryReducer(state, { type: 'UPDATE_STATE', payload: { cableDucts: updatedCableDucts } });
     }
     default:
