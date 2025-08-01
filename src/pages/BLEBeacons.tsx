@@ -55,10 +55,13 @@ const BLEBeacons: React.FC = () => {
   const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
     if (type === 'beacon') {
       actions.setBeacons([...beacons, featureData]);
+      // Do NOT deactivate interaction for manual beacon placement
     } else if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
+      setActiveInteraction(null); // Deactivate for barrier drawing
+    } else {
+      setActiveInteraction(null); // Deactivate for other types if they were ever added here
     }
-    setActiveInteraction(null);
   }, [actions, beacons, barriers]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
