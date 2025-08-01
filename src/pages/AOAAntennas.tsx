@@ -10,7 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
-import { isPointInsideAnyBarrier } from '@/lib/utils'; // Импортируем isPointInsideAnyBarrier
+import { isPointInsideAnyBarrier } from '@/lib/utils';
+import {
+  Antenna, Pencil, Trash2, Router, Cable, Square, Ruler, X, Undo2, Redo2
+} from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Helper function to calculate antenna range based on height and angle
 const calculateAntennaRange = (height: number, angleDegrees: number): number => {
@@ -69,14 +73,12 @@ const AOAAntennas: React.FC = () => {
   const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState(false);
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
   const [defaultAntennaHeightInput, setDefaultAntennaHeightInput] = useState<number>(3);
-  const [defaultAntennaAngleInput, setDefaultAntennaAngleInput] = useState<number>(45); // Default to 45 degrees for a more typical cone
+  const [defaultAntennaAngleInput, setDefaultAntennaAngleInput] = useState<number>(45);
 
-  // Calculate the antenna range based on current height and angle inputs
   const calculatedAntennaRange = useMemo(() => {
     return calculateAntennaRange(defaultAntennaHeightInput, defaultAntennaAngleInput);
   }, [defaultAntennaHeightInput, defaultAntennaAngleInput]);
 
-  // Automatically calculate antenna placement step based on the calculated range
   const antennaPlacementStepInput = useMemo(() => {
     return calculatedAntennaRange * THREE_ANTENNA_OVERLAP_FACTOR;
   }, [calculatedAntennaRange]);
@@ -87,7 +89,6 @@ const AOAAntennas: React.FC = () => {
 
   const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
     if (type === 'antenna') {
-      // When manually adding an antenna, use the calculated range
       actions.setAntennas([...antennas, { ...featureData, range: calculatedAntennaRange }]);
     } else if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
@@ -96,7 +97,7 @@ const AOAAntennas: React.FC = () => {
     } else if (type === 'cableDuct') {
       actions.setCableDucts([...cableDucts, featureData]);
     }
-    setActiveInteraction(null); // Deactivate interaction after drawing
+    setActiveInteraction(null);
   }, [actions, antennas, barriers, switches, cableDucts, calculatedAntennaRange]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
@@ -107,27 +108,26 @@ const AOAAntennas: React.FC = () => {
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.map(c => c.id === id ? { ...c, path: newPosition as Coordinate[] } : c));
     }
-    setActiveInteraction(null); // Deactivate interaction after modifying
+    setActiveInteraction(null);
   }, [actions, antennas, switches, cableDucts]);
 
   const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string) => {
     if (type === 'antenna') {
       actions.setAntennas(antennas.filter(a => a.id !== id));
     } else if (type === 'barrier') {
-      // Filter barriers by comparing their stringified coordinates (ID)
       actions.setBarriers(barriers.filter(b => JSON.stringify(b) !== id));
     } else if (type === 'switch') {
       actions.setSwitches(switches.filter(s => s.id !== id));
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.filter(c => c.id !== id));
     }
-    setActiveInteraction(null); // Deactivate interaction after deleting
+    setActiveInteraction(null);
   }, [actions, antennas, barriers, switches, cableDucts]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {
     setDrawnLengthForRescale(drawnLength);
     setIsRescaleDialogOpen(true);
-    setActiveInteraction(null); // Deactivate rescale draw
+    setActiveInteraction(null);
   }, []);
 
   const handleRescaleConfirm = useCallback((realWorldLength: number) => {
@@ -138,7 +138,6 @@ const AOAAntennas: React.FC = () => {
 
       actions.setMapDimensions(newWidth, newHeight);
 
-      // Recalculate positions for all features based on the new scale
       actions.setBeacons(beacons.map(b => ({
         ...b,
         position: [b.position[0] * scaleFactor, b.position[1] * scaleFactor],
@@ -146,7 +145,7 @@ const AOAAntennas: React.FC = () => {
       actions.setAntennas(antennas.map(a => ({
         ...a,
         position: [a.position[0] * scaleFactor, a.position[1] * scaleFactor],
-        range: a.range * scaleFactor, // Scale range as well
+        range: a.range * scaleFactor,
       })));
       actions.setBarriers(barriers.map(barrier => barrier.map(ring => ring.map(coord => [coord[0] * scaleFactor, coord[1] * scaleFactor]))));
       actions.setZones(zones.map(zone => ({
@@ -226,15 +225,14 @@ const AOAAntennas: React.FC = () => {
     for (let y = antennaPlacementStepInput / 2; y < mapHeightMeters; y += antennaPlacementStepInput) {
       for (let x = antennaPlacementStepInput / 2; x < mapWidthMeters; x += antennaPlacementStepInput) {
         const newAntennaPosition: Coordinate = [x, y];
-        // Check if the point is inside any barrier
         if (!isPointInsideAnyBarrier(newAntennaPosition, barriers)) {
           newAntennas.push({
             id: `antenna-${currentId++}`,
             position: newAntennaPosition,
             height: defaultAntennaHeightInput,
             angle: defaultAntennaAngleInput,
-            range: calculatedRangeForAuto, // Use the calculated range
-            price: antennaPrice, // Use current antenna price from context
+            range: calculatedRangeForAuto,
+            price: antennaPrice,
           });
         }
       }
@@ -280,7 +278,6 @@ const AOAAntennas: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Map Core */}
             <div className="md:col-span-1">
               <MapCore
                 mapImageSrc={mapImageSrc}
@@ -310,94 +307,210 @@ const AOAAntennas: React.FC = () => {
               />
             </div>
 
-            {/* Controls and Tools */}
             <div className="md:col-span-1 space-y-4">
               <div className="p-4 border rounded-md">
                 <h3 className="text-lg font-semibold mb-2">Инструменты рисования и редактирования:</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    onClick={() => handleInteractionChange('manualAntenna')}
-                    variant={activeInteraction === 'manualAntenna' ? 'default' : 'outline'}
-                  >
-                    Добавить антенну
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('editAntenna')}
-                    variant={activeInteraction === 'editAntenna' ? 'default' : 'outline'}
-                  >
-                    Редактировать антенну
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('deleteAntenna')}
-                    variant={activeInteraction === 'deleteAntenna' ? 'destructive' : 'outline'}
-                  >
-                    Удалить антенну
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('manualSwitch')}
-                    variant={activeInteraction === 'manualSwitch' ? 'default' : 'outline'}
-                  >
-                    Добавить коммутатор
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('editSwitch')}
-                    variant={activeInteraction === 'editSwitch' ? 'default' : 'outline'}
-                  >
-                    Редактировать коммутатор
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('deleteSwitch')}
-                    variant={activeInteraction === 'deleteSwitch' ? 'destructive' : 'outline'}
-                  >
-                    Удалить коммутатор
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('drawCableDuct')}
-                    variant={activeInteraction === 'drawCableDuct' ? 'default' : 'outline'}
-                  >
-                    Нарисовать кабель-канал
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('editCableDuct')}
-                    variant={activeInteraction === 'editCableDuct' ? 'default' : 'outline'}
-                  >
-                    Редактировать кабель-канал
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('deleteCableDuct')}
-                    variant={activeInteraction === 'deleteCableDuct' ? 'destructive' : 'outline'}
-                  >
-                    Удалить кабель-канал
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('drawBarrier')}
-                    variant={activeInteraction === 'drawBarrier' ? 'default' : 'outline'}
-                  >
-                    Нарисовать барьер
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('deleteBarrier')}
-                    variant={activeInteraction === 'deleteBarrier' ? 'destructive' : 'outline'}
-                  >
-                    Удалить барьер
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('rescale')}
-                    variant={activeInteraction === 'rescale' ? 'default' : 'outline'}
-                  >
-                    Ремасштабировать карту
-                  </Button>
-                  <Button onClick={() => setActiveInteraction(null)} variant="secondary">
-                    Отменить действие
-                  </Button>
+                <div className="grid grid-cols-3 gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('manualAntenna')}
+                        variant={activeInteraction === 'manualAntenna' ? 'default' : 'outline'}
+                        size="icon"
+                      >
+                        <Antenna className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Добавить антенну</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('editAntenna')}
+                        variant={activeInteraction === 'editAntenna' ? 'default' : 'outline'}
+                        size="icon"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Редактировать антенну</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('deleteAntenna')}
+                        variant={activeInteraction === 'deleteAntenna' ? 'destructive' : 'outline'}
+                        size="icon"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Удалить антенну</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('manualSwitch')}
+                        variant={activeInteraction === 'manualSwitch' ? 'default' : 'outline'}
+                        size="icon"
+                      >
+                        <Router className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Добавить коммутатор</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('editSwitch')}
+                        variant={activeInteraction === 'editSwitch' ? 'default' : 'outline'}
+                        size="icon"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Редактировать коммутатор</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('deleteSwitch')}
+                        variant={activeInteraction === 'deleteSwitch' ? 'destructive' : 'outline'}
+                        size="icon"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Удалить коммутатор</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('drawCableDuct')}
+                        variant={activeInteraction === 'drawCableDuct' ? 'default' : 'outline'}
+                        size="icon"
+                      >
+                        <Cable className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Нарисовать кабель-канал</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('editCableDuct')}
+                        variant={activeInteraction === 'editCableDuct' ? 'default' : 'outline'}
+                        size="icon"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Редактировать кабель-канал</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('deleteCableDuct')}
+                        variant={activeInteraction === 'deleteCableDuct' ? 'destructive' : 'outline'}
+                        size="icon"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Удалить кабель-канал</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('drawBarrier')}
+                        variant={activeInteraction === 'drawBarrier' ? 'default' : 'outline'}
+                        size="icon"
+                      >
+                        <Square className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Нарисовать барьер</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('deleteBarrier')}
+                        variant={activeInteraction === 'deleteBarrier' ? 'destructive' : 'outline'}
+                        size="icon"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Удалить барьер</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('rescale')}
+                        variant={activeInteraction === 'rescale' ? 'default' : 'outline'}
+                        size="icon"
+                      >
+                        <Ruler className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Ремасштабировать карту</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveInteraction(null)} variant="secondary" size="icon">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Отменить действие</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-4">
-                  <Button onClick={actions.undo} disabled={!actions.canUndo} variant="outline">
-                    Отменить
-                  </Button>
-                  <Button onClick={actions.redo} disabled={!actions.canRedo} variant="outline">
-                    Вернуть
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={actions.undo} disabled={!actions.canUndo} variant="outline" size="icon">
+                        <Undo2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Отменить</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={actions.redo} disabled={!actions.canRedo} variant="outline" size="icon">
+                        <Redo2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Вернуть</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
@@ -499,7 +612,6 @@ const AOAAntennas: React.FC = () => {
             </div>
           </div>
 
-          {/* Map Controls (Visibility and Statistics) */}
           <MapControls
             mapImageSrc={mapImageSrc}
             mapWidthMeters={mapWidthMeters}

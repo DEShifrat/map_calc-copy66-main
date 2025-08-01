@@ -11,7 +11,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
-import { isPointInsideAnyBarrier } from '@/lib/utils'; // Импортируем isPointInsideAnyBarrier
+import { isPointInsideAnyBarrier } from '@/lib/utils';
+import {
+  MapPin, Pencil, Trash2, Square, Ruler, X, Undo2, Redo2
+} from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const BLEBeacons: React.FC = () => {
   const { state, actions } = useMap();
@@ -68,7 +72,6 @@ const BLEBeacons: React.FC = () => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.filter(b => b.id !== id));
     } else if (type === 'barrier') {
-      // Filter barriers by comparing their stringified coordinates (ID)
       actions.setBarriers(barriers.filter(b => JSON.stringify(b) !== id));
     }
     setActiveInteraction(null);
@@ -180,11 +183,9 @@ const BLEBeacons: React.FC = () => {
           currentX += step / 2;
         }
 
-        // Ensure beacon is within map bounds
         if (currentX >= 0 && currentX <= mapWidthMeters && currentY >= 0 && currentY <= mapHeightMeters) {
           const newBeaconPosition: Coordinate = [currentX, currentY];
 
-          // Check if the point is inside any barrier
           if (!isPointInsideAnyBarrier(newBeaconPosition, barriers)) {
             newBeacons.push({
               id: `beacon-${currentId++}`,
@@ -234,7 +235,6 @@ const BLEBeacons: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Map Core */}
             <div className="md:col-span-1">
               <MapCore
                 mapImageSrc={mapImageSrc}
@@ -264,58 +264,126 @@ const BLEBeacons: React.FC = () => {
               />
             </div>
 
-            {/* Controls and Tools */}
             <div className="md:col-span-1 space-y-4">
               <div className="p-4 border rounded-md">
                 <h3 className="text-lg font-semibold mb-2">Инструменты рисования и редактирования:</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    onClick={() => handleInteractionChange('manualBeacon')}
-                    variant={activeInteraction === 'manualBeacon' ? 'default' : 'outline'}
-                  >
-                    Добавить маяк
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('editBeacon')}
-                    variant={activeInteraction === 'editBeacon' ? 'default' : 'outline'}
-                  >
-                    Редактировать маяк
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('deleteBeacon')}
-                    variant={activeInteraction === 'deleteBeacon' ? 'destructive' : 'outline'}
-                  >
-                    Удалить маяк
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('drawBarrier')}
-                    variant={activeInteraction === 'drawBarrier' ? 'default' : 'outline'}
-                  >
-                    Нарисовать барьер
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('deleteBarrier')}
-                    variant={activeInteraction === 'deleteBarrier' ? 'destructive' : 'outline'}
-                  >
-                    Удалить барьер
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('rescale')}
-                    variant={activeInteraction === 'rescale' ? 'default' : 'outline'}
-                  >
-                    Ремасштабировать карту
-                  </Button>
-                  <Button onClick={() => setActiveInteraction(null)} variant="secondary">
-                    Отменить действие
-                  </Button>
+                <div className="grid grid-cols-3 gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('manualBeacon')}
+                        variant={activeInteraction === 'manualBeacon' ? 'default' : 'outline'}
+                        size="icon"
+                      >
+                        <MapPin className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Добавить маяк</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('editBeacon')}
+                        variant={activeInteraction === 'editBeacon' ? 'default' : 'outline'}
+                        size="icon"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Редактировать маяк</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('deleteBeacon')}
+                        variant={activeInteraction === 'deleteBeacon' ? 'destructive' : 'outline'}
+                        size="icon"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Удалить маяк</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('drawBarrier')}
+                        variant={activeInteraction === 'drawBarrier' ? 'default' : 'outline'}
+                        size="icon"
+                      >
+                        <Square className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Нарисовать барьер</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('deleteBarrier')}
+                        variant={activeInteraction === 'deleteBarrier' ? 'destructive' : 'outline'}
+                        size="icon"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Удалить барьер</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('rescale')}
+                        variant={activeInteraction === 'rescale' ? 'default' : 'outline'}
+                        size="icon"
+                      >
+                        <Ruler className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Ремасштабировать карту</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveInteraction(null)} variant="secondary" size="icon">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Отменить действие</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-4">
-                  <Button onClick={actions.undo} disabled={!actions.canUndo} variant="outline">
-                    Отменить
-                  </Button>
-                  <Button onClick={actions.redo} disabled={!actions.canRedo} variant="outline">
-                    Вернуть
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={actions.undo} disabled={!actions.canUndo} variant="outline" size="icon">
+                        <Undo2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Отменить</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={actions.redo} disabled={!actions.canRedo} variant="outline" size="icon">
+                        <Redo2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Вернуть</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
@@ -400,7 +468,6 @@ const BLEBeacons: React.FC = () => {
             </div>
           </div>
 
-          {/* Map Controls (Visibility and Statistics) */}
           <MapControls
             mapImageSrc={mapImageSrc}
             mapWidthMeters={mapWidthMeters}
