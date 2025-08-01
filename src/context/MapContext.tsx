@@ -16,7 +16,6 @@ interface Antenna {
   angle: number;
   range: number;
   price?: number;
-  type: 'aoa' | 'zonal'; // Добавляем тип антенны
 }
 
 interface Zone {
@@ -95,7 +94,7 @@ interface SavedMapConfig {
   mapWidthMeters: number;
   mapHeightMeters: number;
   beacons: Beacon[];
-  antennas: Antenna[]; // Обновлено для включения типа
+  antennas: Antenna[];
   barriers: Coordinate[][][][];
   zones: Zone[];
   switches: Switch[];
@@ -110,7 +109,7 @@ const defaultMapState: MapState = {
   mapWidthMeters: 100,
   mapHeightMeters: 100,
   beacons: [],
-  antennas: [], // Изначально пустой массив, тип будет установлен при добавлении
+  antennas: [],
   barriers: [],
   zones: [],
   switches: [],
@@ -161,7 +160,7 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         mapWidthMeters: config.mapWidthMeters,
         mapHeightMeters: config.mapHeightMeters,
         beacons: config.beacons || [],
-        antennas: config.antennas?.map(ant => ({ ...ant, type: ant.type || 'aoa' })) || [], // Убедимся, что тип установлен
+        antennas: config.antennas || [],
         barriers: config.barriers || [],
         zones: config.zones || [],
         switches: config.switches || [],

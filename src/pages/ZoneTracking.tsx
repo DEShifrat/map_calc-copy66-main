@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
-import Polygon from 'ol/geom/Polygon'; // Import Polygon for calculating center
 
 const ZoneTracking: React.FC = () => {
   const { state, actions } = useMap();
@@ -42,12 +41,6 @@ const ZoneTracking: React.FC = () => {
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
   const [zoneSizeInput, setZoneSizeInput] = useState<number>(10); // New state for zone size
 
-  // Default antenna properties for auto-placement in zones
-  const defaultAntennaHeight = 3;
-  const defaultAntennaAngle = 0;
-  // Радиус зональной антенны будет равен половине размера зоны
-  const defaultAntennaRange = zoneSizeInput / 2; 
-
   const handleInteractionChange = (interaction: MapInteractionType) => {
     setActiveInteraction(prev => (prev === interaction ? null : interaction));
   };
@@ -61,18 +54,14 @@ const ZoneTracking: React.FC = () => {
       actions.setSwitches([...switches, featureData]);
     } else if (type === 'cableDuct') {
       actions.setCableDucts([...cableDucts, featureData]);
-    } else if (type === 'antenna') {
-      // При ручном добавлении антенны на этой странице, она будет зональной
-      actions.setAntennas([...antennas, { ...featureData, type: 'zonal' }]);
     }
     setActiveInteraction(null); // Deactivate interaction after drawing
-  }, [actions, barriers, zones, switches, cableDucts, antennas]);
+  }, [actions, barriers, zones, switches, cableDucts]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.map(b => b.id === id ? { ...b, position: newPosition as Coordinate } : b));
     } else if (type === 'antenna') {
-      // Сохраняем существующий тип антенны при модификации
       actions.setAntennas(antennas.map(a => a.id === id ? { ...a, position: newPosition as Coordinate } : a));
     } else if (type === 'switch') {
       actions.setSwitches(switches.map(s => s.id === id ? { ...s, position: newPosition as Coordinate } : s));
@@ -188,9 +177,7 @@ const ZoneTracking: React.FC = () => {
     }
 
     const newZones: typeof zones = [];
-    const newAntennas: typeof antennas = [...antennas]; // Start with existing antennas
-    let currentZoneId = zones.length > 0 ? Math.max(...zones.map(z => parseInt(z.id.split('-')[1]))) + 1 : 1;
-    let currentAntennaId = antennas.length > 0 ? Math.max(...antennas.map(a => parseInt(a.id.split('-')[1]))) + 1 : 1;
+    let currentId = zones.length > 0 ? Math.max(...zones.map(z => parseInt(z.id.split('-')[1]))) + 1 : 1;
 
     for (let y = 0; y < mapHeightMeters; y += zoneSizeInput) {
       for (let x = 0; x < mapWidthMeters; x += zoneSizeInput) {
@@ -199,7 +186,7 @@ const ZoneTracking: React.FC = () => {
         const x2 = Math.min(x + zoneSizeInput, mapWidthMeters);
         const y2 = Math.min(y + zoneSizeInput, mapHeightMeters);
 
-        const polygonCoords: Coordinate[][][] = [[
+        const polygon: Coordinate[][][] = [[
           [x1, y1],
           [x2, y1],
           [x2, y2],
@@ -208,29 +195,14 @@ const ZoneTracking: React.FC = () => {
         ]];
 
         newZones.push({
-          id: `zone-${currentZoneId++}`,
-          polygon: polygonCoords,
+          id: `zone-${currentId++}`,
+          polygon: polygon,
           beaconCount: 0, // Default to 0, can be updated later
-        });
-
-        // Calculate center of the zone for antenna placement
-        const zonePolygon = new Polygon(polygonCoords);
-        const center = zonePolygon.getInteriorPoint().getCoordinates();
-
-        newAntennas.push({
-          id: `antenna-${currentAntennaId++}`,
-          position: center,
-          height: defaultAntennaHeight,
-          angle: defaultAntennaAngle,
-          range: zoneSizeInput / 2, // Радиус равен половине размера зоны
-          price: antennaPrice,
-          type: 'zonal', // Устанавливаем тип как 'zonal'
         });
       }
     }
     actions.setZones(newZones);
-    actions.setAntennas(newAntennas); // Update antennas in context
-    showSuccess(`Автоматически создано ${newZones.length} зон и ${newAntennas.length - antennas.length} антенн.`);
+    showSuccess(`Автоматически создано ${newZones.length} зон.`);
     setActiveInteraction(null); // Deactivate any active interaction
   };
 
@@ -320,24 +292,6 @@ const ZoneTracking: React.FC = () => {
                     variant={activeInteraction === 'deleteZone' ? 'destructive' : 'outline'}
                   >
                     Удалить зону
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('manualAntenna')} {/* Добавляем кнопку для ручного добавления зональных антенн */}
-                    variant={activeInteraction === 'manualAntenna' ? 'default' : 'outline'}
-                  >
-                    Добавить антенну
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('editAntenna')}
-                    variant={activeInteraction === 'editAntenna' ? 'default' : 'outline'}
-                  >
-                    Редактировать антенну
-                  </Button>
-                  <Button
-                    onClick={() => handleInteractionChange('deleteAntenna')}
-                    variant={activeInteraction === 'deleteAntenna' ? 'destructive' : 'outline'}
-                  >
-                    Удалить антенну
                   </Button>
                   <Button
                     onClick={() => handleInteractionChange('manualSwitch')}

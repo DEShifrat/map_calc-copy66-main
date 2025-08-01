@@ -6,7 +6,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { Map, View } from 'ol';
 import ImageLayer from 'ol/layer/Image';
 import ImageStatic from 'ol/source/ImageStatic';
-import { Projection } from 'ol/proj';
+import { get as getProjection, Projection } from 'ol/proj';
 import { getCenter } from 'ol/extent';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -14,14 +14,12 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Polygon from 'ol/geom/Polygon';
 import LineString from 'ol/geom/LineString';
-import {
-  beaconStyle,
-  barrierStyle,
-  zoneStyle,
-  switchStyle,
-  getAntennaStyle,
-  getCableDuctStyle,
-} from '@/utils/mapStyles';
+import Style from 'ol/style/Style';
+import Icon from 'ol/style/Icon';
+import Fill from 'ol/style/Fill';
+import Stroke from 'ol/style/Stroke';
+import CircleStyle from 'ol/style/Circle';
+import Text from 'ol/style/Text';
 import { Coordinate } from 'ol/coordinate';
 
 // Интерфейсы для данных карты (повторяются из MapContext для ясности)
@@ -39,7 +37,6 @@ interface Antenna {
   angle: number;
   range: number;
   price?: number;
-  type: 'aoa' | 'zonal'; // Добавляем тип антенны
 }
 
 interface Zone {
@@ -88,6 +85,120 @@ interface MapControlsProps {
   onSaveConfiguration: () => void;
   cablePricePerMeter: number;
 }
+
+// --- Стили, определенные за пределами компонента для избежания проблем с инициализацией ---
+const beaconStyle = new Style({
+  image: new Icon({
+    anchor: [0.5, 1],
+    src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="red" width="24px" height="24px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>',
+    scale: 1.5,
+  }),
+});
+
+const barrierStyle = new Style({
+  fill: new Fill({
+    color: 'rgba(255, 0, 0, 0.3)',
+  }),
+  stroke: new Stroke({
+    color: 'red',
+    width: 2,
+  }),
+});
+
+const zoneStyle = new Style({
+  fill: new Fill({
+    color: 'rgba(0, 255, 0, 0.1)',
+  }),
+  stroke: new Stroke({
+    color: 'green',
+    width: 1,
+  }),
+});
+
+const switchStyle = new Style({
+  image: new Icon({
+    anchor: [0.5, 1],
+    src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="purple" width="24px" height="24px"><path d="M19 1H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm-1 14h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zM8 5h8v2H8V5zm0 4h8v2H8V9zm0 4h8v2H8v-2z"/></svg>',
+    scale: 1.5,
+  }),
+});
+
+const cableDuctLineStyle = new Style({
+  stroke: new Stroke({
+    color: 'orange',
+    width: 3,
+    lineDash: [5, 5],
+  }),
+});
+
+const getAntennaStyle = (feature: Feature, showAntennaRanges: boolean) => {
+  const range = feature.get('range');
+  const position = feature.getGeometry()?.getCoordinates();
+
+  const styles: Style[] = [
+    new Style({
+      image: new Icon({
+        anchor: [0.5, 1],
+        src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="blue" width="24px" height="24px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>',
+        scale: 1.5,
+      }),
+    }),
+  ];
+
+  if (showAntennaRanges) {
+    if (position && range !== undefined) {
+      styles.push(
+        new Style({
+          geometry: new Circle(position, range),
+          fill: new Fill({
+            color: 'rgba(0, 0, 255, 0.1)',
+          }),
+          stroke: new Stroke({
+            color: 'blue',
+            width: 1,
+          }),
+        })
+      );
+    }
+  }
+  return styles;
+};
+
+const getCableDuctStyle = (feature: Feature, showCableDuctLengths: boolean) => {
+  const styles: Style[] = [cableDuctLineStyle];
+
+  if (showCableDuctLengths) {
+    const geometry = feature.getGeometry();
+    if (geometry instanceof LineString) {
+      const coordinates = geometry.getCoordinates();
+      for (let i = 0; i < coordinates.length - 1; i++) {
+        const p1 = coordinates[i];
+        const p2 = coordinates[i + 1];
+
+        const segmentLength = Math.sqrt(
+          Math.pow(p2[0] - p1[0], 2) +
+          Math.pow(p2[1] - p1[1], 2)
+        );
+
+        const midpoint: Coordinate = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+
+        styles.push(new Style({
+          geometry: new Point(midpoint),
+          text: new Text({
+            text: `${segmentLength.toFixed(2)} м`,
+            font: '12px Calibri,sans-serif',
+            fill: new Fill({ color: 'black' }),
+            stroke: new Stroke({ color: 'white', width: 3 }),
+            offsetY: -10,
+            placement: 'point',
+          }),
+        }));
+      }
+    }
+  }
+  return styles;
+};
+// --- Конец стилей ---
 
 const MapControls: React.FC<MapControlsProps> = ({
   mapImageSrc,
@@ -155,7 +266,7 @@ const MapControls: React.FC<MapControlsProps> = ({
     exportBeaconLayer.setVisible(showBeacons);
 
     const exportAntennaLayer = new VectorLayer({
-      source: new VectorSource({ features: antennas.map(a => new Feature({ geometry: new Point(a.position), id: a.id, range: a.range, type: a.type })) }),
+      source: new VectorSource({ features: antennas.map(a => new Feature({ geometry: new Point(a.position), id: a.id, range: a.range })) }),
       style: (feature) => getAntennaStyle(feature, showAntennaRanges),
     });
     exportAntennaLayer.setVisible(showAntennas);
@@ -180,7 +291,7 @@ const MapControls: React.FC<MapControlsProps> = ({
 
     const exportCableDuctLayer = new VectorLayer({
       source: new VectorSource({ features: cableDucts.map(c => new Feature({ geometry: new LineString(c.path), id: c.id, type: c.type })) }),
-      style: (feature) => getCableDuctStyle(feature, showCableDuctLengths, null), // Pass null for hoveredFeatureId in export
+      style: (feature) => getCableDuctStyle(feature, showCableDuctLengths),
     });
     exportCableDuctLayer.setVisible(showCableDucts);
 

@@ -50,8 +50,7 @@ const AOAAntennas: React.FC = () => {
 
   const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
     if (type === 'antenna') {
-      // При ручном добавлении антенны на этой странице, она будет AOA
-      actions.setAntennas([...antennas, { ...featureData, type: 'aoa' }]);
+      actions.setAntennas([...antennas, featureData]);
     } else if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
     } else if (type === 'switch') {
@@ -64,7 +63,6 @@ const AOAAntennas: React.FC = () => {
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
     if (type === 'antenna') {
-      // Сохраняем существующий тип антенны при модификации
       actions.setAntennas(antennas.map(a => a.id === id ? { ...a, position: newPosition as Coordinate } : a));
     } else if (type === 'switch') {
       actions.setSwitches(switches.map(s => s.id === id ? { ...s, position: newPosition as Coordinate } : s));
@@ -195,7 +193,6 @@ const AOAAntennas: React.FC = () => {
           angle: defaultAntennaAngleInput,
           range: defaultAntennaRangeInput,
           price: antennaPrice, // Use current antenna price from context
-          type: 'aoa', // Устанавливаем тип как 'aoa'
         });
       }
     }
