@@ -1,9 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useMap } from '@/context/MapContext'; // Импортируем useMap
 
 const TechnologySelection: React.FC = () => {
+  const { actions } = useMap(); // Получаем actions из контекста
+
+  useEffect(() => {
+    // Сбрасываем все данные карты при монтировании компонента TechnologySelection
+    actions.resetMapData();
+  }, [actions]); // Зависимость от actions, чтобы эффект запускался только при изменении actions (что маловероятно)
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-200 dark:bg-gray-900 p-4">
       <Card className="w-full max-w-2xl shadow-lg bg-gray-100 dark:bg-gray-900">
