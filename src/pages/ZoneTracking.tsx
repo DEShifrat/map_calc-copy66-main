@@ -368,7 +368,7 @@ const ZoneTracking: React.FC = () => {
                     Отменить
                   </Button>
                   <Button onClick={actions.redo} disabled={!actions.canRedo} variant="outline">
-                    Повторить
+                    Вернуть
                   </Button>
                 </div>
               </div>
