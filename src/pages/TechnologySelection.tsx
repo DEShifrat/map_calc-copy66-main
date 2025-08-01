@@ -1,16 +1,17 @@
-import React, { useEffect } from 'react';
+import React from 'react'; // Удаляем useEffect, поэтому он больше не нужен
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useMap } from '@/context/MapContext'; // Импортируем useMap
+// import { useMap } from '@/context/MapContext'; // useMap больше не нужен, так как resetMapData не вызывается здесь
 
 const TechnologySelection: React.FC = () => {
-  const { actions } = useMap(); // Получаем actions из контекста
+  // const { actions } = useMap(); // actions больше не нужен
 
-  useEffect(() => {
-    // Сбрасываем все данные карты при монтировании компонента TechnologySelection
-    actions.resetMapData();
-  }, [actions]); // Зависимость от actions, чтобы эффект запускался только при изменении actions (что маловероятно)
+  // useEffect(() => {
+  //   // Сбрасываем все данные карты при монтировании компонента TechnologySelection
+  //   // ЭТОТ ВЫЗОВ БЫЛ ПРИЧИНОЙ БАГА И УДАЛЕН.
+  //   actions.resetMapData();
+  // }, [actions]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-200 dark:bg-gray-900 p-4">
