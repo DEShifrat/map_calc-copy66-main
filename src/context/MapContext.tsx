@@ -197,56 +197,92 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
     }
     case 'DELETE_CABLE_DUCT_SEGMENT': {
       const { id, segmentIndex } = action.payload;
-      console.log('DELETE_CABLE_DUCT_SEGMENT:', { id, segmentIndex, currentDucts: state.current.cableDucts });
+      console.log('DELETE_CABLE_DUCT_SEGMENT action received:', { id, segmentIndex });
 
       const updatedCableDucts = state.current.cableDucts.flatMap(duct => {
         if (duct.id === id) {
           const path = [...duct.path];
-          console.log(`  Processing duct ${duct.id}, path length: ${path.length}, segmentIndex: ${segmentIndex}`);
+          console.log(`  Processing duct ID: ${duct.id}, Original Path:`, path, `Segment Index to delete: ${segmentIndex}`);
 
           if (path.length < 2) {
-            console.log('    Duct has less than 2 points, removing it.');
+            console.warn('  Duct has less than 2 points, removing it (should not happen for a valid line).');
             return []; // Remove this duct if it has no segments
           }
 
           if (path.length === 2) {
-            console.log('    Duct has exactly 2 points (single segment), removing it.');
+            console.log('  Duct has exactly 2 points (single segment), removing the entire duct.');
             return []; // Only one segment, remove the whole duct
           }
 
-          // Split the path
           const newDucts: CableDuct[] = [];
-          const firstPart = path.slice(0, segmentIndex + 1);
-          const secondPart = path.slice(segmentIndex + 1);
 
-          console.log('    Original path:', path);
-          console.log('    First part:', firstPart);
-          console.log('    Second part:', secondPart);
+          // Case: Deleting a middle segment (splits into two lines)
+          if (segmentIndex > 0 && segmentIndex < path.length - 2) {
+            console.log(`  Deleting middle segment at index ${segmentIndex}. Splitting into two parts.`);
+            const part1 = path.slice(0, segmentIndex + 1); // From start to the point *before* the deleted segment's end
+            const part2 = path.slice(segmentIndex + 1);   // From the point *after* the deleted segment's start to end
 
-          if (firstPart.length >= 2) {
-            const newId1 = `${duct.id}-part1-${Date.now()}`;
-            newDucts.push({
-              id: newId1,
-              path: firstPart,
-              type: duct.type,
-            });
-            console.log('    Added first part:', newId1, firstPart);
+            if (part1.length >= 2) {
+              newDucts.push({
+                id: `${duct.id}-part1-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More unique ID
+                path: part1,
+                type: duct.type,
+              });
+              console.log('    Part 1 created:', newDucts[newDucts.length - 1]);
+            } else {
+              console.warn('    Part 1 too short, not added:', part1);
+            }
+            if (part2.length >= 2) {
+              newDucts.push({
+                id: `${duct.id}-part2-${Date.now() + 1}-${Math.random().toString(36).substring(2, 9)}`, // More unique ID
+                path: part2,
+                type: duct.type,
+              });
+              console.log('    Part 2 created:', newDucts[newDucts.length - 1]);
+            } else {
+              console.warn('    Part 2 too short, not added:', part2);
+            }
           }
-          if (secondPart.length >= 2) {
-            const newId2 = `${duct.id}-part2-${Date.now() + 1}`;
-            newDucts.push({
-              id: newId2,
-              path: secondPart,
-              type: duct.type,
-            });
-            console.log('    Added second part:', newId2, secondPart);
+          // Case: Deleting the first segment (shortens from start)
+          else if (segmentIndex === 0) {
+            console.log('  Deleting first segment. Shortening from start.');
+            const remainingPath = path.slice(1); // Remove the first point (P0), effectively removing P0-P1 segment
+            if (remainingPath.length >= 2) {
+              newDucts.push({
+                id: `${duct.id}-shortened-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                path: remainingPath,
+                type: duct.type,
+              });
+              console.log('    Shortened duct created:', newDucts[newDucts.length - 1]);
+            } else {
+              console.warn('    Shortened path too short, duct removed.');
+            }
           }
-          console.log('    New ducts from split:', newDucts);
+          // Case: Deleting the last segment (shortens from end)
+          else if (segmentIndex === path.length - 2) {
+            console.log('  Deleting last segment. Shortening from end.');
+            const remainingPath = path.slice(0, path.length - 1); // Remove the last point (P_n-1), effectively removing P_n-2 - P_n-1 segment
+            if (remainingPath.length >= 2) {
+              newDucts.push({
+                id: `${duct.id}-shortened-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                path: remainingPath,
+                type: duct.type,
+              });
+              console.log('    Shortened duct created:', newDucts[newDucts.length - 1]);
+            } else {
+              console.warn('    Shortened path too short, duct removed.');
+            }
+          } else {
+            console.error(`  Unexpected segmentIndex: ${segmentIndex} for path length ${path.length}. Duct will be removed.`);
+            return []; // Fallback: remove the duct if segmentIndex is invalid
+          }
+
+          console.log('  New ducts generated for this operation:', newDucts);
           return newDucts; // Replace original duct with new parts (or nothing)
         }
         return [duct]; // Keep other ducts as is
       });
-      console.log('Final updatedCableDucts:', updatedCableDucts);
+      console.log('Final updatedCableDucts after flatMap:', updatedCableDucts);
       return mapHistoryReducer(state, { type: 'UPDATE_STATE', payload: { cableDucts: updatedCableDucts } });
     }
     default:
