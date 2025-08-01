@@ -6,7 +6,7 @@ import { useMap } from '@/context/MapContext';
 import MapCore, { MapInteractionType } from '@/components/MapCore';
 import MapControls from '@/components/MapControls';
 import RescaleDialog from '@/components/RescaleDialog';
-import { Input }
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
