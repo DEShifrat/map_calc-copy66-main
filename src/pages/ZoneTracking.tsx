@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
+import Polygon from 'ol/geom/Polygon'; // Import Polygon for calculating center
 
 const ZoneTracking: React.FC = () => {
   const { state, actions } = useMap();
@@ -40,6 +41,11 @@ const ZoneTracking: React.FC = () => {
   const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState(false);
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
   const [zoneSizeInput, setZoneSizeInput] = useState<number>(10); // New state for zone size
+
+  // Default antenna properties for auto-placement in zones
+  const defaultAntennaHeight = 3;
+  const defaultAntennaAngle = 0;
+  const defaultAntennaRange = 20;
 
   const handleInteractionChange = (interaction: MapInteractionType) => {
     setActiveInteraction(prev => (prev === interaction ? null : interaction));
@@ -177,7 +183,9 @@ const ZoneTracking: React.FC = () => {
     }
 
     const newZones: typeof zones = [];
-    let currentId = zones.length > 0 ? Math.max(...zones.map(z => parseInt(z.id.split('-')[1]))) + 1 : 1;
+    const newAntennas: typeof antennas = [...antennas]; // Start with existing antennas
+    let currentZoneId = zones.length > 0 ? Math.max(...zones.map(z => parseInt(z.id.split('-')[1]))) + 1 : 1;
+    let currentAntennaId = antennas.length > 0 ? Math.max(...antennas.map(a => parseInt(a.id.split('-')[1]))) + 1 : 1;
 
     for (let y = 0; y < mapHeightMeters; y += zoneSizeInput) {
       for (let x = 0; x < mapWidthMeters; x += zoneSizeInput) {
@@ -186,7 +194,7 @@ const ZoneTracking: React.FC = () => {
         const x2 = Math.min(x + zoneSizeInput, mapWidthMeters);
         const y2 = Math.min(y + zoneSizeInput, mapHeightMeters);
 
-        const polygon: Coordinate[][][] = [[
+        const polygonCoords: Coordinate[][][] = [[
           [x1, y1],
           [x2, y1],
           [x2, y2],
@@ -195,14 +203,28 @@ const ZoneTracking: React.FC = () => {
         ]];
 
         newZones.push({
-          id: `zone-${currentId++}`,
-          polygon: polygon,
+          id: `zone-${currentZoneId++}`,
+          polygon: polygonCoords,
           beaconCount: 0, // Default to 0, can be updated later
+        });
+
+        // Calculate center of the zone for antenna placement
+        const zonePolygon = new Polygon(polygonCoords);
+        const center = zonePolygon.getInteriorPoint().getCoordinates();
+
+        newAntennas.push({
+          id: `antenna-${currentAntennaId++}`,
+          position: center,
+          height: defaultAntennaHeight,
+          angle: defaultAntennaAngle,
+          range: defaultAntennaRange,
+          price: antennaPrice,
         });
       }
     }
     actions.setZones(newZones);
-    showSuccess(`Автоматически создано ${newZones.length} зон.`);
+    actions.setAntennas(newAntennas); // Update antennas in context
+    showSuccess(`Автоматически создано ${newZones.length} зон и ${newAntennas.length - antennas.length} антенн.`);
     setActiveInteraction(null); // Deactivate any active interaction
   };
 
@@ -245,7 +267,7 @@ const ZoneTracking: React.FC = () => {
                 barriers={barriers}
                 zones={zones}
                 switches={switches}
-                cableDucts={cableDucts}
+                cableDucts={cableDducts}
                 showBeacons={showBeacons}
                 showAntennas={showAntennas}
                 showBarriers={showBarriers}
