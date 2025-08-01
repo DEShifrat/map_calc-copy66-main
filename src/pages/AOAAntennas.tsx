@@ -106,12 +106,14 @@ const AOAAntennas: React.FC = () => {
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
     if (type === 'antenna') {
       actions.setAntennas(antennas.map(a => a.id === id ? { ...a, position: newPosition as Coordinate } : a));
+      // Do NOT deactivate interaction for manual antenna modification
     } else if (type === 'switch') {
       actions.setSwitches(switches.map(s => s.id === id ? { ...s, position: newPosition as Coordinate } : s));
+      setActiveInteraction(null); // Deactivate for switch modification
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.map(c => c.id === id ? { ...c, path: newPosition as Coordinate[] } : c));
+      setActiveInteraction(null); // Deactivate for cable duct modification
     }
-    setActiveInteraction(null);
   }, [actions, antennas, switches, cableDucts]);
 
   const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string) => {

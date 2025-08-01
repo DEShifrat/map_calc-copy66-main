@@ -58,15 +58,19 @@ const BLEBeacons: React.FC = () => {
       // Do NOT deactivate interaction for manual beacon placement
     } else if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
-      setActiveInteraction(null); // Deactivate after one barrier draw
+      setActiveInteraction(null); // Deactivate for barrier drawing
+    } else {
+      setActiveInteraction(null); // Deactivate for other types if they were ever added here
     }
   }, [actions, beacons, barriers]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.map(b => b.id === id ? { ...b, position: newPosition as Coordinate } : b));
+      // Do NOT deactivate interaction for manual beacon modification
+    } else {
+      setActiveInteraction(null); // Deactivate for other types if they were ever added here
     }
-    setActiveInteraction(null);
   }, [actions, beacons]);
 
   const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string) => {
