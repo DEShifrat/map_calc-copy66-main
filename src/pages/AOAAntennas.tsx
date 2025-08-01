@@ -90,14 +90,17 @@ const AOAAntennas: React.FC = () => {
   const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
     if (type === 'antenna') {
       actions.setAntennas([...antennas, { ...featureData, range: calculatedAntennaRange }]);
+      // Do NOT deactivate for manual antenna placement
     } else if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
+      setActiveInteraction(null); // Deactivate after one barrier draw
     } else if (type === 'switch') {
       actions.setSwitches([...switches, featureData]);
+      // Do NOT deactivate for manual switch placement
     } else if (type === 'cableDuct') {
       actions.setCableDucts([...cableDucts, featureData]);
+      setActiveInteraction(null); // Deactivate after one cable duct draw
     }
-    setActiveInteraction(null);
   }, [actions, antennas, barriers, switches, cableDucts, calculatedAntennaRange]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {

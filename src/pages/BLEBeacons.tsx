@@ -58,9 +58,7 @@ const BLEBeacons: React.FC = () => {
       // Do NOT deactivate interaction for manual beacon placement
     } else if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
-      setActiveInteraction(null); // Deactivate for barrier drawing
-    } else {
-      setActiveInteraction(null); // Deactivate for other types if they were ever added here
+      setActiveInteraction(null); // Deactivate after one barrier draw
     }
   }, [actions, beacons, barriers]);
 

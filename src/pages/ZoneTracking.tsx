@@ -42,7 +42,7 @@ const ZoneTracking: React.FC = () => {
   } = state;
 
   const [activeInteraction, setActiveInteraction] = useState<MapInteractionType>(null);
-  const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState(false);
+  const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState(0);
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
   const [zoneSizeInput, setZoneSizeInput] = useState<number>(10);
 
@@ -53,14 +53,17 @@ const ZoneTracking: React.FC = () => {
   const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
     if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
+      setActiveInteraction(null); // Deactivate after one barrier draw
     } else if (type === 'zone') {
       actions.setZones([...zones, featureData]);
+      setActiveInteraction(null); // Deactivate after one zone draw
     } else if (type === 'switch') {
       actions.setSwitches([...switches, featureData]);
+      // Do NOT deactivate for manual switch placement
     } else if (type === 'cableDuct') {
       actions.setCableDucts([...cableDucts, featureData]);
+      setActiveInteraction(null); // Deactivate after one cable duct draw
     }
-    setActiveInteraction(null);
   }, [actions, barriers, zones, switches, cableDucts]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
