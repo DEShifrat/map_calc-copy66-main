@@ -197,90 +197,39 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
     }
     case 'DELETE_CABLE_DUCT_SEGMENT': {
       const { id, segmentIndex } = action.payload;
-      console.log('DELETE_CABLE_DUCT_SEGMENT action received:', { id, segmentIndex });
 
       const updatedCableDucts = state.current.cableDucts.flatMap(duct => {
         if (duct.id === id) {
           const path = [...duct.path];
-          console.log(`  Processing duct ID: ${duct.id}, Original Path:`, path, `Path Length: ${path.length}, Segment Index to delete: ${segmentIndex}`);
 
-          if (path.length < 2) {
-            console.warn('  Duct has less than 2 points, removing it (should not happen for a valid line).');
-            return []; // Remove this duct if it has no segments
+          // Если кабель-канал имеет менее 2 точек (т.е. 0 или 1 отрезок)
+          // или segmentIndex выходит за пределы допустимого для отрезков,
+          // то удаляем весь кабель-канал.
+          if (path.length < 2 || segmentIndex < 0 || segmentIndex >= path.length - 1) {
+            return []; // Удаляем кабель-канал
           }
 
-          if (path.length === 2) {
-            console.log('  Duct has exactly 2 points (single segment), removing the entire duct.');
-            return []; // Only one segment, remove the whole duct
+          // Создаем новый путь, удаляя точку, которая является концом удаляемого отрезка
+          // и началом следующего. Это эффективно "сглаживает" линию.
+          // Например, если path = [P0, P1, P2, P3] и удаляем segmentIndex = 1 (P1-P2),
+          // то удаляем P2 (path[segmentIndex + 1]), и новый путь будет [P0, P1, P3].
+          const newPath = path.filter((_, idx) => idx !== segmentIndex + 1);
+
+          // Если после удаления путь имеет менее 2 точек, удаляем весь кабель-канал.
+          if (newPath.length < 2) {
+            return [];
           }
 
-          // Logic for multi-segment lines (path.length > 2)
-          const newDucts: CableDuct[] = [];
-
-          if (segmentIndex === 0) {
-            // Deleting the first segment (P0-P1)
-            // Resulting path: [P1, P2, ..., Pn-1]
-            const remainingPath = path.slice(1);
-            if (remainingPath.length >= 2) {
-              newDucts.push({
-                id: `${duct.id}-shortened-start-${Date.now()}-${Math.random().toString(36).substring(2)}`,
-                path: remainingPath,
-                type: duct.type,
-              });
-            } else {
-              console.warn('    Remaining path too short after deleting first segment, duct removed.');
-            }
-            console.log('  Deleted first segment. New duct(s):', newDucts);
-          } else if (segmentIndex === path.length - 2) {
-            // Deleting the last segment (P(n-2)-P(n-1))
-            // Resulting path: [P0, P1, ..., P(n-2)]
-            const remainingPath = path.slice(0, path.length - 1);
-            if (remainingPath.length >= 2) {
-              newDucts.push({
-                id: `${duct.id}-shortened-end-${Date.now()}-${Math.random().toString(36).substring(2)}`,
-                path: remainingPath,
-                type: duct.type,
-              });
-            } else {
-              console.warn('    Remaining path too short after deleting last segment, duct removed.');
-            }
-            console.log('  Deleted last segment. New duct(s):', newDucts);
-          } else if (segmentIndex > 0 && segmentIndex < path.length - 2) {
-            // Deleting a middle segment (P_i - P_{i+1})
-            // Splits into two parts: [P0, ..., P_i] and [P_{i+1}, ..., Pn-1]
-            const part1 = path.slice(0, segmentIndex + 1);
-            const part2 = path.slice(segmentIndex + 1);
-
-            if (part1.length >= 2) {
-              newDucts.push({
-                id: `${duct.id}-part1-${Date.now()}-${Math.random().toString(36).substring(2)}`,
-                path: part1,
-                type: duct.type,
-              });
-            } else {
-              console.warn('    Part 1 too short, not added:', part1);
-            }
-            if (part2.length >= 2) {
-              newDucts.push({
-                id: `${duct.id}-part2-${Date.now() + 1}-${Math.random().toString(36).substring(2)}`,
-                path: part2,
-                type: duct.type,
-              });
-            } else {
-              console.warn('    Part 2 too short, not added:', part2);
-            }
-            console.log('  Deleted middle segment. New duct(s):', newDucts);
-          } else {
-            console.error(`  Unexpected segmentIndex: ${segmentIndex} for path length ${path.length}. Duct will be removed.`);
-            return []; // Fallback: remove the duct if segmentIndex is invalid
-          }
-
-          console.log('  Returning new ducts:', newDucts);
-          return newDucts; // Replace original duct with new parts (or nothing)
+          // Возвращаем измененный кабель-канал с новым ID, чтобы React корректно его перерисовал
+          // и для обеспечения иммутабельности в истории.
+          return [{
+            ...duct,
+            id: `${duct.id}-modified-${Date.now()}-${Math.random().toString(36).substring(2)}`,
+            path: newPath,
+          }];
         }
-        return [duct]; // Keep other ducts as is
+        return [duct]; // Оставляем другие кабель-каналы без изменений
       });
-      console.log('Final updatedCableDucts after flatMap:', updatedCableDucts);
       return mapHistoryReducer(state, { type: 'UPDATE_STATE', payload: { cableDucts: updatedCableDucts } });
     }
     default:
