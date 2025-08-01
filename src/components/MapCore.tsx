@@ -123,7 +123,7 @@ const barrierHoverStyle = new Style({
   }),
 });
 
-const cableDuctHoverStyle = new Style({
+const cableDuctHoverSegmentStyle = new Style({
   stroke: new Stroke({
     color: 'cyan',
     width: 5, // Увеличиваем ширину для лучшей видимости при наведении
@@ -355,10 +355,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           const segmentGeometry = new LineString([coords[hoveredSegmentIndex], coords[hoveredSegmentIndex + 1]]);
           styles.push(new Style({
             geometry: segmentGeometry,
-            stroke: new Stroke({
-              color: 'cyan',
-              width: 5,
-            }),
+            stroke: cableDuctHoverSegmentStyle.getStroke(), // Используем стиль для сегмента
           }));
         }
       }
@@ -764,6 +761,7 @@ const MapCore: React.FC<MapCoreProps> = ({
       case 'deleteSwitch':
       case 'deleteCableDuct': // Обработка удаления отрезка кабель-канала
         newClickListener = (event: any) => {
+          console.log('MapCore: Click listener triggered for interaction:', activeInteraction);
           const coordinate = event.coordinate;
 
           if (activeInteraction === 'manualBeacon') {
@@ -859,8 +857,9 @@ const MapCore: React.FC<MapCoreProps> = ({
               const featureId = feature.get('id');
               const geometry = feature.getGeometry();
               if (featureId && geometry instanceof LineString) {
-                const closestSegment = findClosestSegment(geometry, event.coordinate, 10); // Увеличиваем tolerance для удобства клика
+                const closestSegment = findClosestSegment(geometry, event.coordinate, 20); // Увеличиваем tolerance для удобства клика
                 if (closestSegment) {
+                  console.log(`MapCore: Deleting cable duct segment. ID: ${featureId}, Segment Index: ${closestSegment.segmentIndex}`);
                   onFeatureDelete('cableDuct', featureId, closestSegment.segmentIndex);
                   showSuccess('Отрезок кабель-канала удален!');
                   return true; // Останавливаем поиск после первого найденного
@@ -869,7 +868,7 @@ const MapCore: React.FC<MapCoreProps> = ({
               return false;
             }, {
               layerFilter: (layer) => layer === cableDuctVectorLayer.current,
-              hitTolerance: 10, // Увеличиваем hitTolerance для удобства клика по линии
+              hitTolerance: 20, // Увеличиваем hitTolerance для удобства клика по линии
             });
           }
         };
@@ -909,6 +908,7 @@ const MapCore: React.FC<MapCoreProps> = ({
     if (!mapInstance) return;
 
     const handlePointerMove = (event: any) => {
+      // console.log('MapCore: Pointer move triggered.'); // Закомментировано, чтобы не засорять консоль
       let foundFeatureId: string | null = null;
       let foundSegmentIndex: number | null = null;
       const deletionModes = ['deleteBeacon', 'deleteAntenna', 'deleteZone', 'deleteBarrier', 'deleteSwitch', 'deleteCableDuct'];
@@ -920,7 +920,7 @@ const MapCore: React.FC<MapCoreProps> = ({
             const geomType = feature.getGeometry()?.getType();
             if (activeInteraction === 'deleteCableDuct' && geomType === 'LineString') {
               const geometry = feature.getGeometry() as LineString;
-              const closestSegment = findClosestSegment(geometry, event.coordinate, 10); // Увеличиваем tolerance для наведения
+              const closestSegment = findClosestSegment(geometry, event.coordinate, 20); // Увеличиваем tolerance для наведения
               if (closestSegment) {
                 foundFeatureId = featureId;
                 foundSegmentIndex = closestSegment.segmentIndex;
@@ -946,7 +946,7 @@ const MapCore: React.FC<MapCoreProps> = ({
             layer === barrierVectorLayer.current ||
             layer === switchVectorLayer.current ||
             layer === cableDuctVectorLayer.current,
-          hitTolerance: 10,
+          hitTolerance: 20, // Увеличиваем hitTolerance
         });
         setHoveredFeatureId(foundFeatureId);
         setHoveredSegmentIndex(foundSegmentIndex);
