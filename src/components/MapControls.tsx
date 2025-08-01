@@ -485,6 +485,9 @@ const MapControls: React.FC<MapControlsProps> = ({
     return totalLength;
   }, [cableDucts, switches, antennas]);
 
+  // Calculate total cable duct cost
+  const totalCableDuctCost = conditionalCableDuctLength * cablePricePerMeter;
+
   const totalMapArea = mapWidthMeters * mapHeightMeters;
   const totalBarrierArea = barriers.reduce((sum, coords) => {
     const polygon = new Polygon(coords);
