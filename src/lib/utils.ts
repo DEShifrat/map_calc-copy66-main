@@ -9,9 +9,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Helper function to check if a point is inside any of the given barriers
-export const isPointInsideAnyBarrier = (point: Coordinate, barriers: Coordinate[][][][]): boolean => {
+export const isPointInsideAnyBarrier = (point: Coordinate, barriers: Coordinate[][][]): boolean => { // Изменено с Coordinate[][][][] на Coordinate[][][]
   return barriers.some(barrierCoords => {
-    const polygon = new Polygon(barrierCoords);
+    const polygon = new Polygon(barrierCoords); // barrierCoords теперь Coordinate[][]
     return polygon.intersectsCoordinate(point);
   });
 };

@@ -14,6 +14,7 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Polygon from 'ol/geom/Polygon';
 import LineString from 'ol/geom/LineString';
+import Circle from 'ol/geom/Circle'; // Добавлен импорт Circle
 import Style from 'ol/style/Style';
 import Icon from 'ol/style/Icon';
 import Fill from 'ol/style/Fill';
@@ -21,6 +22,7 @@ import Stroke from 'ol/style/Stroke';
 import CircleStyle from 'ol/style/Circle';
 import Text from 'ol/style/Text';
 import { Coordinate } from 'ol/coordinate';
+import { FeatureLike } from 'ol/Feature'; // Импорт FeatureLike
 
 // Интерфейсы для данных карты (повторяются из MapContext для ясности)
 interface Beacon {
@@ -41,7 +43,7 @@ interface Antenna {
 
 interface Zone {
   id: string;
-  polygon: Coordinate[][][];
+  polygon: Coordinate[][]; // Изменено с Coordinate[][][] на Coordinate[][]
   beaconCount: number;
 }
 
@@ -62,7 +64,7 @@ interface MapControlsProps {
   mapHeightMeters: number;
   beacons: Beacon[];
   antennas: Antenna[];
-  barriers: Coordinate[][][][];
+  barriers: Coordinate[][][]; // Изменено с Coordinate[][][][] на Coordinate[][][]
   zones: Zone[];
   switches: Switch[];
   cableDucts: CableDuct[];
@@ -131,10 +133,7 @@ const cableDuctLineStyle = new Style({
   }),
 });
 
-const getAntennaStyle = (feature: Feature, showAntennaRanges: boolean) => {
-  const range = feature.get('range');
-  const position = feature.getGeometry()?.getCoordinates();
-
+const getAntennaStyle = (feature: FeatureLike, showAntennaRanges: boolean) => { // FeatureLike
   const styles: Style[] = [
     new Style({
       image: new Icon({
@@ -146,30 +145,35 @@ const getAntennaStyle = (feature: Feature, showAntennaRanges: boolean) => {
   ];
 
   if (showAntennaRanges) {
-    if (position && range !== undefined) {
-      styles.push(
-        new Style({
-          geometry: new Circle(position, range),
-          fill: new Fill({
-            color: 'rgba(0, 0, 255, 0.1)',
-          }),
-          stroke: new Stroke({
-            color: 'blue',
-            width: 1,
-          }),
-        })
-      );
+    const geometry = feature.getGeometry();
+    if (geometry instanceof Point) { // Проверка на Point
+      const position = geometry.getCoordinates();
+      const range = feature.get('range');
+      if (position && range !== undefined) {
+        styles.push(
+          new Style({
+            geometry: new Circle(position, range),
+            fill: new Fill({
+              color: 'rgba(0, 0, 255, 0.1)',
+            }),
+            stroke: new Stroke({
+              color: 'blue',
+              width: 1,
+            }),
+          })
+        );
+      }
     }
   }
   return styles;
 };
 
-const getCableDuctStyle = (feature: Feature, showCableDuctLengths: boolean) => {
+const getCableDuctStyle = (feature: FeatureLike, showCableDuctLengths: boolean) => { // FeatureLike
   const styles: Style[] = [cableDuctLineStyle];
 
   if (showCableDuctLengths) {
     const geometry = feature.getGeometry();
-    if (geometry instanceof LineString) {
+    if (geometry instanceof LineString) { // Проверка на LineString
       const coordinates = geometry.getCoordinates();
       for (let i = 0; i < coordinates.length - 1; i++) {
         const p1 = coordinates[i];
@@ -339,13 +343,13 @@ const MapControls: React.FC<MapControlsProps> = ({
     exportAntennaLayer.setVisible(showAntennas);
 
     const exportBarrierLayer = new VectorLayer({
-      source: new VectorSource({ features: barriers.map(b => new Feature({ geometry: new Polygon(b) })) }),
+      source: new VectorSource({ features: barriers.map(b => new Feature({ geometry: new Polygon(b) })) }), // b теперь Coordinate[][]
       style: barrierStyle,
     });
     exportBarrierLayer.setVisible(showBarriers);
 
     const exportZoneLayer = new VectorLayer({
-      source: new VectorSource({ features: zones.map(z => new Feature({ geometry: new Polygon(z.polygon), id: z.id, beaconCount: z.beaconCount })) }),
+      source: new VectorSource({ features: zones.map(z => new Feature({ geometry: new Polygon(z.polygon), id: z.id, beaconCount: z.beaconCount })) }), // z.polygon теперь Coordinate[][]
       style: zoneStyle,
     });
     exportZoneLayer.setVisible(showZones);
@@ -490,7 +494,7 @@ const MapControls: React.FC<MapControlsProps> = ({
 
   const totalMapArea = mapWidthMeters * mapHeightMeters;
   const totalBarrierArea = barriers.reduce((sum, coords) => {
-    const polygon = new Polygon(coords);
+    const polygon = new Polygon(coords); // coords теперь Coordinate[][]
     return sum + polygon.getArea();
   }, 0);
   const movableArea = totalMapArea - totalBarrierArea;

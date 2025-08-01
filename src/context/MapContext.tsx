@@ -20,7 +20,7 @@ interface Antenna {
 
 interface Zone {
   id: string;
-  polygon: Coordinate[][][];
+  polygon: Coordinate[][]; // Изменено с Coordinate[][][] на Coordinate[][]
   beaconCount: number;
 }
 
@@ -42,7 +42,7 @@ interface MapState {
   mapHeightMeters: number;
   beacons: Beacon[];
   antennas: Antenna[];
-  barriers: Coordinate[][][][];
+  barriers: Coordinate[][][]; // Изменено с Coordinate[][][][] на Coordinate[][][]
   zones: Zone[];
   switches: Switch[];
   cableDucts: CableDuct[];
@@ -67,7 +67,7 @@ interface SavedMapConfig {
   mapHeightMeters: number;
   beacons: Beacon[];
   antennas: Antenna[];
-  barriers: Coordinate[][][][];
+  barriers: Coordinate[][][]; // Изменено с Coordinate[][][][] на Coordinate[][][]
   zones: Zone[];
   switches: Switch[];
   cableDucts: CableDuct[];
@@ -217,68 +217,65 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
           // Logic for multi-segment lines (path.length > 2)
           const newDucts: CableDuct[] = [];
 
-          // Deleting a middle segment (splits into two lines)
-          if (segmentIndex > 0 && segmentIndex < path.length - 2) {
-            console.log(`  Deleting middle segment at index ${segmentIndex}. Splitting into two parts.`);
-            const part1 = path.slice(0, segmentIndex + 1); // From start to the point *before* the deleted segment's end
-            const part2 = path.slice(segmentIndex + 1);   // From the point *after* the deleted segment's start to end
+          if (segmentIndex === 0) {
+            // Deleting the first segment (P0-P1)
+            // Resulting path: [P1, P2, ..., Pn-1]
+            const remainingPath = path.slice(1);
+            if (remainingPath.length >= 2) {
+              newDucts.push({
+                id: `${duct.id}-shortened-start-${Date.now()}-${Math.random().toString(36).substring(2)}`,
+                path: remainingPath,
+                type: duct.type,
+              });
+            } else {
+              console.warn('    Remaining path too short after deleting first segment, duct removed.');
+            }
+            console.log('  Deleted first segment. New duct(s):', newDucts);
+          } else if (segmentIndex === path.length - 2) {
+            // Deleting the last segment (P(n-2)-P(n-1))
+            // Resulting path: [P0, P1, ..., P(n-2)]
+            const remainingPath = path.slice(0, path.length - 1);
+            if (remainingPath.length >= 2) {
+              newDucts.push({
+                id: `${duct.id}-shortened-end-${Date.now()}-${Math.random().toString(36).substring(2)}`,
+                path: remainingPath,
+                type: duct.type,
+              });
+            } else {
+              console.warn('    Remaining path too short after deleting last segment, duct removed.');
+            }
+            console.log('  Deleted last segment. New duct(s):', newDucts);
+          } else if (segmentIndex > 0 && segmentIndex < path.length - 2) {
+            // Deleting a middle segment (P_i - P_{i+1})
+            // Splits into two parts: [P0, ..., P_i] and [P_{i+1}, ..., Pn-1]
+            const part1 = path.slice(0, segmentIndex + 1);
+            const part2 = path.slice(segmentIndex + 1);
 
             if (part1.length >= 2) {
               newDucts.push({
-                id: `${duct.id}-part1-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // More unique ID
+                id: `${duct.id}-part1-${Date.now()}-${Math.random().toString(36).substring(2)}`,
                 path: part1,
                 type: duct.type,
               });
-              console.log('    Part 1 created:', newDucts[newDucts.length - 1]);
             } else {
               console.warn('    Part 1 too short, not added:', part1);
             }
             if (part2.length >= 2) {
               newDucts.push({
-                id: `${duct.id}-part2-${Date.now() + 1}-${Math.random().toString(36).substring(2, 9)}`, // More unique ID
+                id: `${duct.id}-part2-${Date.now() + 1}-${Math.random().toString(36).substring(2)}`,
                 path: part2,
                 type: duct.type,
               });
-              console.log('    Part 2 created:', newDucts[newDucts.length - 1]);
             } else {
               console.warn('    Part 2 too short, not added:', part2);
             }
-          }
-          // Deleting the first segment (shortens from start)
-          else if (segmentIndex === 0) {
-            console.log('  Deleting first segment. Shortening from start.');
-            const remainingPath = path.slice(1); // Remove the first point (P0), effectively removing P0-P1 segment
-            if (remainingPath.length >= 2) {
-              newDucts.push({
-                id: `${duct.id}-shortened-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                path: remainingPath,
-                type: duct.type,
-              });
-              console.log('    Shortened duct created:', newDucts[newDucts.length - 1]);
-            } else {
-              console.warn('    Shortened path too short, duct removed.');
-            }
-          }
-          // Deleting the last segment (shortens from end)
-          else if (segmentIndex === path.length - 2) {
-            console.log('  Deleting last segment. Shortening from end.');
-            const remainingPath = path.slice(0, path.length - 1); // Remove the last point (P_n-1), effectively removing P_n-2 - P_n-1 segment
-            if (remainingPath.length >= 2) {
-              newDucts.push({
-                id: `${duct.id}-shortened-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                path: remainingPath,
-                type: duct.type,
-              });
-              console.log('    Shortened duct created:', newDucts[newDucts.length - 1]);
-            } else {
-              console.warn('    Shortened path too short, duct removed.');
-            }
+            console.log('  Deleted middle segment. New duct(s):', newDucts);
           } else {
-            console.error(`  Invalid segmentIndex: ${segmentIndex} for path length ${path.length}. Duct will be removed.`);
+            console.error(`  Unexpected segmentIndex: ${segmentIndex} for path length ${path.length}. Duct will be removed.`);
             return []; // Fallback: remove the duct if segmentIndex is invalid
           }
 
-          console.log('  New ducts generated for this operation:', newDucts);
+          console.log('  Returning new ducts:', newDucts);
           return newDucts; // Replace original duct with new parts (or nothing)
         }
         return [duct]; // Keep other ducts as is
@@ -304,7 +301,7 @@ interface MapActions {
   setMapDimensions: (width: number, height: number) => void;
   setBeacons: (beacons: Beacon[]) => void;
   setAntennas: (antennas: Antenna[]) => void;
-  setBarriers: (barriers: Coordinate[][][][]) => void;
+  setBarriers: (barriers: Coordinate[][][]) => void; // Изменено с Coordinate[][][][] на Coordinate[][][]
   setZones: (zones: Zone[]) => void;
   setSwitches: (switches: Switch[]) => void;
   setCableDucts: (cableDucts: CableDuct[]) => void;

@@ -43,7 +43,7 @@ const BLEBeacons: React.FC = () => {
   } = state;
 
   const [activeInteraction, setActiveInteraction] = useState<MapInteractionType>(null);
-  const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState(false);
+  const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState<boolean>(false); // Исправлен тип
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
   const [beaconStepInput, setBeaconStepInput] = useState<number>(5);
   const [beaconPlacementType, setBeaconPlacementType] = useState<'row' | 'chessboard' | 'triangular' | 'adaptive'>('row');
@@ -98,25 +98,25 @@ const BLEBeacons: React.FC = () => {
 
       actions.setBeacons(beacons.map(b => ({
         ...b,
-        position: [b.position[0] * scaleFactor, b.position[1] * scaleFactor],
+        position: [b.position[0] * scaleFactor, b.position[1] * scaleFactor] as Coordinate,
       })));
       actions.setAntennas(antennas.map(a => ({
         ...a,
-        position: [a.position[0] * scaleFactor, a.position[1] * scaleFactor],
+        position: [a.position[0] * scaleFactor, a.position[1] * scaleFactor] as Coordinate,
         range: a.range * scaleFactor,
       })));
-      actions.setBarriers(barriers.map(barrier => barrier.map(ring => ring.map(coord => [coord[0] * scaleFactor, coord[1] * scaleFactor]))));
+      actions.setBarriers(barriers.map(barrier => barrier.map(ring => ring.map(coord => [coord[0] * scaleFactor, coord[1] * scaleFactor] as Coordinate))));
       actions.setZones(zones.map(zone => ({
         ...zone,
-        polygon: zone.polygon.map(ring => ring.map(coord => [coord[0] * scaleFactor, coord[1] * scaleFactor])),
+        polygon: zone.polygon.map(ring => ring.map(coord => [coord[0] * scaleFactor, coord[1] * scaleFactor] as Coordinate)),
       })));
       actions.setSwitches(switches.map(s => ({
         ...s,
-        position: [s.position[0] * scaleFactor, s.position[1] * scaleFactor],
+        position: [s.position[0] * scaleFactor, s.position[1] * scaleFactor] as Coordinate,
       })));
       actions.setCableDucts(cableDucts.map(c => ({
         ...c,
-        path: c.path.map(coord => [coord[0] * scaleFactor, coord[1] * scaleFactor]),
+        path: c.path.map(coord => [coord[0] * scaleFactor, coord[1] * scaleFactor] as Coordinate),
       })));
 
       showSuccess(`Карта ремасштабирована. Новые размеры: ${newWidth.toFixed(2)}м x ${newHeight.toFixed(2)}м`);
