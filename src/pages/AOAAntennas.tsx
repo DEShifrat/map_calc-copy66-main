@@ -201,6 +201,14 @@ const AOAAntennas: React.FC = () => {
     setActiveInteraction(null);
   };
 
+  const handleClearAntennasSwitchesCableDucts = () => {
+    actions.setAntennas([]);
+    actions.setSwitches([]);
+    actions.setCableDucts([]);
+    showSuccess('Все антенны, коммутаторы и кабель-каналы удалены.');
+    setActiveInteraction(null);
+  };
+
   if (!mapImageSrc) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-200 dark:bg-gray-900 p-4">
@@ -391,9 +399,14 @@ const AOAAntennas: React.FC = () => {
                     />
                   </div>
                 </div>
-                <Button onClick={handleAutoCalculateAntennas} className="w-full">
-                  Авторасчет антенн
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button onClick={handleAutoCalculateAntennas} className="w-full">
+                    Авторасчет антенн
+                  </Button>
+                  <Button onClick={handleClearAntennasSwitchesCableDucts} variant="destructive" className="w-full">
+                    Очистить все
+                  </Button>
+                </div>
               </div>
 
               <div className="p-4 border rounded-md">

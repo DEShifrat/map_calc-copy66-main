@@ -220,6 +220,13 @@ const ZoneTracking: React.FC = () => {
     setActiveInteraction(null); // Deactivate any active interaction
   };
 
+  const handleClearZonesAndBeacons = () => {
+    actions.setZones([]);
+    actions.setBeacons([]);
+    showSuccess('Все зоны и маяки удалены.');
+    setActiveInteraction(null);
+  };
+
   if (!mapImageSrc) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-200 dark:bg-gray-900 p-4">
@@ -368,9 +375,14 @@ const ZoneTracking: React.FC = () => {
                     step="1"
                   />
                 </div>
-                <Button onClick={handleAutoCalculateZones} className="w-full">
-                  Авторасчет зон
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button onClick={handleAutoCalculateZones} className="w-full">
+                    Авторасчет зон
+                  </Button>
+                  <Button onClick={handleClearZonesAndBeacons} variant="destructive" className="w-full">
+                    Очистить зоны и маяки
+                  </Button>
+                </div>
               </div>
 
               <div className="p-4 border rounded-md">

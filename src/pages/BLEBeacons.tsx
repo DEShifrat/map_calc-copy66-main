@@ -218,6 +218,12 @@ const BLEBeacons: React.FC = () => {
     setActiveInteraction(null);
   };
 
+  const handleClearBeacons = () => {
+    actions.setBeacons([]);
+    showSuccess('Все маяки удалены.');
+    setActiveInteraction(null);
+  };
+
   if (!mapImageSrc) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-200 dark:bg-gray-900 p-4">
@@ -353,9 +359,14 @@ const BLEBeacons: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleAutoCalculateBeacons} className="w-full">
-                  Авторасчет маяков
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button onClick={handleAutoCalculateBeacons} className="w-full">
+                    Авторасчет маяков
+                  </Button>
+                  <Button onClick={handleClearBeacons} variant="destructive" className="w-full">
+                    Очистить маяки
+                  </Button>
+                </div>
               </div>
 
               <div className="p-4 border rounded-md">
