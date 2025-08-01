@@ -19,18 +19,20 @@ const calculateAntennaRange = (height: number, angleDegrees: number): number => 
 
   // Handle edge cases for angle
   if (angleDegrees === 0) {
-    return 10000; // Effectively infinite, set a large max range for practical purposes
+    return 0; // Beam is perfectly vertical, horizontal range is 0
   }
   if (angleDegrees === 90) {
-    return 0; // Pointing straight down, no horizontal range
+    return 10000; // Beam is perfectly horizontal, effectively infinite range
   }
 
   const tanAngle = Math.tan(angleRadians);
-  if (tanAngle <= 0) { // Angle > 90 degrees or very small negative angle, pointing upwards or near horizontal
-    return 10000; // Treat as very large range
+  // For angles > 90 degrees, tan will be negative or approach negative infinity.
+  // We assume angleDegrees is between 0 and 90 for a meaningful horizontal range.
+  if (tanAngle < 0) {
+    return 10000; // Treat as very large range if angle is obtuse (pointing upwards)
   }
 
-  return height / tanAngle;
+  return height * tanAngle; // Corrected calculation
 };
 
 const AOAAntennas: React.FC = () => {
@@ -408,7 +410,7 @@ const AOAAntennas: React.FC = () => {
                       value={defaultAntennaAngleInput}
                       onChange={(e) => setDefaultAntennaAngleInput(Number(e.target.value))}
                       min="0"
-                      max="360"
+                      max="90"
                       step="1"
                     />
                   </div>
