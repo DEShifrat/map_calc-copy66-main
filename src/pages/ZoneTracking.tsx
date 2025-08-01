@@ -267,7 +267,7 @@ const ZoneTracking: React.FC = () => {
                 barriers={barriers}
                 zones={zones}
                 switches={switches}
-                cableDucts={cableDucts} {/* Исправлено: cableDducts -> cableDucts */}
+                cableDucts={cableDucts}
                 showBeacons={showBeacons}
                 showAntennas={showAntennas}
                 showBarriers={showBarriers}
