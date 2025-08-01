@@ -10,10 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
-import LineString from 'ol/geom/LineString'; // Добавлен импорт LineString
+import LineString from 'ol/geom/LineString';
 import { isPointInsideAnyBarrier } from '@/lib/utils';
 import {
-  Antenna, Pencil, Trash2, Router, Cable, Square, Ruler, X, Undo2, Redo2
+  Antenna, Pencil, Trash2, Router, Cable, Square, Ruler, X, Undo2, Redo2, Link as LinkIcon // Добавлен LinkIcon
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -107,12 +107,14 @@ const AOAAntennas: React.FC = () => {
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
     if (type === 'antenna') {
       actions.setAntennas(antennas.map(a => a.id === id ? { ...a, position: newPosition as Coordinate } : a));
+      // Do NOT deactivate interaction for manual antenna modification
     } else if (type === 'switch') {
       actions.setSwitches(switches.map(s => s.id === id ? { ...s, position: newPosition as Coordinate } : s));
+      setActiveInteraction(null); // Deactivate for switch modification
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.map(c => c.id === id ? { ...c, path: newPosition as Coordinate[] } : c));
+      setActiveInteraction(null); // Deactivate for cable duct modification
     }
-    setActiveInteraction(null);
   }, [actions, antennas, switches, cableDucts]);
 
   const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string) => {
@@ -222,11 +224,7 @@ const AOAAntennas: React.FC = () => {
     }
 
     const newAntennas: typeof antennas = [];
-    const newCableDucts: typeof cableDucts = [...cableDucts]; // Начинаем с существующих кабель-каналов
     let currentAntennaId = antennas.length > 0 ? Math.max(...antennas.map(a => parseInt(a.id.split('-')[1]))) + 1 : 1;
-    let currentCableDuctId = cableDucts.length > 0 ? Math.max(...cableDucts.map(c => parseInt(c.id.split('-')[1]))) + 1 : 1;
-
-    const mainCableDucts = cableDucts.filter(duct => duct.type === 'main');
 
     const calculatedRangeForAuto = calculateAntennaRange(defaultAntennaHeightInput, defaultAntennaAngleInput);
 
@@ -242,51 +240,81 @@ const AOAAntennas: React.FC = () => {
             range: calculatedRangeForAuto,
             price: antennaPrice,
           });
-
-          // Auto-attach to closest main cable duct
-          let minDistance = Infinity;
-          let bestConnectionPoint: Coordinate | null = null;
-
-          mainCableDucts.forEach(mainDuct => {
-            const mainDuctGeometry = new LineString(mainDuct.path);
-            const closestPointOnDuct = mainDuctGeometry.getClosestPoint(newAntennaPosition);
-            const distance = Math.sqrt(
-              Math.pow(newAntennaPosition[0] - closestPointOnDuct[0], 2) +
-              Math.pow(newAntennaPosition[1] - closestPointOnDuct[1], 2)
-            );
-
-            if (distance < minDistance) {
-              minDistance = distance;
-              bestConnectionPoint = closestPointOnDuct;
-            }
-          });
-
-          // If a connection point is found and the connection line doesn't cross a barrier
-          if (bestConnectionPoint) {
-            const connectionMidpoint: Coordinate = [
-              (newAntennaPosition[0] + bestConnectionPoint[0]) / 2,
-              (newAntennaPosition[1] + bestConnectionPoint[1]) / 2,
-            ];
-            // Простая проверка: если середина соединительной линии находится внутри любого барьера, не соединяем.
-            // Это эвристика и может не уловить все пересечения барьеров.
-            if (!isPointInsideAnyBarrier(connectionMidpoint, barriers)) {
-              newCableDucts.push({
-                id: `cableDuct-${currentCableDuctId++}`,
-                path: [newAntennaPosition, bestConnectionPoint],
-                type: 'connection',
-              });
-            } else {
-              console.warn(`Skipping connection for antenna at [${newAntennaPosition.map(c => c.toFixed(2)).join(', ')}] because it would cross a barrier.`);
-            }
-          }
         }
       }
     }
     actions.setAntennas(newAntennas);
-    actions.setCableDucts(newCableDucts); // Обновляем состояние кабель-каналов
-    showSuccess(`Автоматически создано ${newAntennas.length} антенн и ${newCableDucts.length - cableDucts.length} новых кабель-каналов.`);
+    showSuccess(`Автоматически создано ${newAntennas.length} антенн.`);
     setActiveInteraction(null);
   };
+
+  const handleAutoConnectAntennasToCableDucts = useCallback(() => {
+    if (antennas.length === 0) {
+      showError('Нет антенн для подключения. Сначала разместите антенны.');
+      return;
+    }
+    const mainCableDucts = cableDucts.filter(duct => duct.type === 'main');
+    if (mainCableDucts.length === 0) {
+      showError('Нет основных кабель-каналов для подключения. Сначала нарисуйте их.');
+      return;
+    }
+
+    const newCableDucts = [...cableDucts];
+    let currentCableDuctId = cableDucts.length > 0 ? Math.max(...cableDucts.map(c => parseInt(c.id.split('-')[1]))) + 1 : 1;
+    let connectionsMade = 0;
+
+    antennas.forEach(antenna => {
+      let minDistance = Infinity;
+      let bestConnectionPoint: Coordinate | null = null;
+
+      mainCableDucts.forEach(mainDuct => {
+        const mainDuctGeometry = new LineString(mainDuct.path);
+        const closestPointOnDuct = mainDuctGeometry.getClosestPoint(antenna.position);
+        const distance = Math.sqrt(
+          Math.pow(antenna.position[0] - closestPointOnDuct[0], 2) +
+          Math.pow(antenna.position[1] - closestPointOnDuct[1], 2)
+        );
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          bestConnectionPoint = closestPointOnDuct;
+        }
+      });
+
+      if (bestConnectionPoint) {
+        const connectionMidpoint: Coordinate = [
+          (antenna.position[0] + bestConnectionPoint[0]) / 2,
+          (antenna.position[1] + bestConnectionPoint[1]) / 2,
+        ];
+        // Простая проверка: если середина соединительной линии находится внутри любого барьера, не соединяем.
+        // Это эвристика и может не уловить все пересечения барьеров.
+        if (!isPointInsideAnyBarrier(connectionMidpoint, barriers)) {
+          // Проверяем, существует ли уже такой кабель-канал, чтобы избежать дублирования
+          const isDuplicate = newCableDucts.some(duct =>
+            (duct.path[0][0] === antenna.position[0] && duct.path[0][1] === antenna.position[1] &&
+             duct.path[1][0] === bestConnectionPoint[0] && duct.path[1][1] === bestConnectionPoint[1]) ||
+            (duct.path[1][0] === antenna.position[0] && duct.path[1][1] === antenna.position[1] &&
+             duct.path[0][0] === bestConnectionPoint[0] && duct.path[0][1] === bestConnectionPoint[1])
+          );
+
+          if (!isDuplicate) {
+            newCableDucts.push({
+              id: `cableDuct-${currentCableDuctId++}`,
+              path: [antenna.position, bestConnectionPoint],
+              type: 'connection',
+            });
+            connectionsMade++;
+          }
+        } else {
+          console.warn(`Skipping connection for antenna at [${antenna.position.map(c => c.toFixed(2)).join(', ')}] because it would cross a barrier.`);
+        }
+      }
+    });
+    actions.setCableDucts(newCableDucts);
+    showSuccess(`Выполнено ${connectionsMade} подключений антенн к кабель-каналам.`);
+    setActiveInteraction(null);
+  }, [antennas, cableDucts, barriers, actions]);
+
 
   const handleClearAntennasSwitchesCableDucts = () => {
     actions.setAntennas([]);
@@ -626,7 +654,11 @@ const AOAAntennas: React.FC = () => {
                   <Button onClick={handleAutoCalculateAntennas} className="w-full">
                     Авторасчет антенн
                   </Button>
-                  <Button onClick={handleClearAntennasSwitchesCableDucts} variant="destructive" className="w-full">
+                  <Button onClick={handleAutoConnectAntennasToCableDucts} className="w-full">
+                    <LinkIcon className="h-4 w-4 mr-2" />
+                    Автопривязка к кабель-каналам
+                  </Button>
+                  <Button onClick={handleClearAntennasSwitchesCableDucts} variant="destructive" className="w-full col-span-2">
                     Очистить все
                   </Button>
                 </div>
