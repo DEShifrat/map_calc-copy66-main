@@ -1,43 +1,44 @@
 import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom'; // Импортируем useNavigate
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import MapDisplay from '@/components/MapDisplay';
 import { showSuccess, showError } from '@/utils/toast';
 
+// Определения интерфейсов (оставляем их здесь, так как Index.tsx будет управлять общим состоянием)
 interface Beacon {
   id: string;
   position: [number, number]; // [x, y] in map coordinates (meters)
   rssi?: number;
-  price?: number; // Добавлено поле price
+  price?: number;
 }
 
 interface Antenna {
   id: string;
   position: [number, number]; // [x, y] in map coordinates (meters)
-  height: number; // Height of installation in meters
-  angle: number; // Angle of algorithm operation (degrees)
-  range: number; // Coverage radius in meters
-  price?: number; // Добавлено поле price
+  height: number;
+  angle: number;
+  range: number;
+  price?: number;
 }
 
-interface Zone { // Новое определение интерфейса Zone
+interface Zone {
   id: string;
-  polygon: [number, number][][][]; // Polygon coordinates
+  polygon: [number, number][][][];
   beaconCount: number;
 }
 
-interface Switch { // Новый интерфейс для коммутатора
+interface Switch {
   id: string;
-  position: [number, number]; // [x, y] in map coordinates (meters)
+  position: [number, number];
 }
 
-interface CableDuct { // Новый интерфейс для кабель-канала (бывший Cable)
+interface CableDuct {
   id: string;
-  path: [number, number][]; // Массив координат для линии кабель-канала
-  type: 'main' | 'connection'; // НОВОЕ: Тип кабель-канала
+  path: [number, number][];
+  type: 'main' | 'connection';
 }
 
 // Define the structure for the saved configuration
@@ -47,29 +48,30 @@ interface SavedMapConfig {
   mapHeightMeters: number;
   beacons: Beacon[];
   antennas: Antenna[];
-  barriers: [number, number][][][]; // Array of Polygon coordinates
-  zones: Zone[]; // Добавлено для сохранения зон
-  switches: Switch[]; // НОВОЕ: Добавлено для сохранения коммутаторов
-  cableDucts: CableDuct[]; // НОВОЕ: Добавлено для сохранения кабель-каналов (бывшие cables)
-  cablePricePerMeter?: number; // Цена за метр кабель-канала
-  defaultBeaconPrice?: number; // Цена маяка по умолчанию
-  defaultAntennaPrice?: number; // Цена антенны по умолчанию
+  barriers: [number, number][][][];
+  zones: Zone[];
+  switches: Switch[];
+  cableDucts: CableDuct[];
+  cablePricePerMeter?: number;
+  defaultBeaconPrice?: number;
+  defaultAntennaPrice?: number;
 }
 
 const Index = () => {
+  const navigate = useNavigate(); // Инициализируем useNavigate
   const [mapImageFile, setMapImageFile] = useState<File | null>(null);
   const [mapImageSrc, setMapImageSrc] = useState<string | null>(null);
-  const [mapWidth, setMapWidth] = useState<number>(100); // Default width in meters
-  const [mapHeight, setMapHeight] = useState<number>(100); // Default height in meters
+  const [mapWidth, setMapWidth] = useState<number>(100);
+  const [mapHeight, setMapHeight] = useState<number>(100);
   const [beacons, setBeacons] = useState<Beacon[]>([]);
-  const [antennas, setAntennas] = useState<Antenna[]>([]); // State for antennas
-  const [barriers, setBarriers] = useState<[number, number][][][]>([]); // State for barriers
-  const [zones, setZones] = useState<Zone[]>([]); // Новое состояние для зон
-  const [switches, setSwitches] = useState<Switch[]>([]); // НОВОЕ: Состояние для коммутаторов
-  const [cableDucts, setCableDucts] = useState<CableDuct[]>([]); // НОВОЕ: Состояние для кабель-каналов (бывшие cables)
-  const [cablePricePerMeter, setCablePricePerMeter] = useState<number>(1); // Цена за метр кабель-канала по умолчанию
-  const [beaconPrice, setBeaconPrice] = useState<number>(10); // Цена маяка по умолчанию
-  const [antennaPrice, setAntennaPrice] = useState<number>(50); // Цена антенны по умолчанию
+  const [antennas, setAntennas] = useState<Antenna[]>([]);
+  const [barriers, setBarriers] = useState<[number, number][][][]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [switches, setSwitches] = useState<Switch[]>([]);
+  const [cableDucts, setCableDucts] = useState<CableDuct[]>([]);
+  const [cablePricePerMeter, setCablePricePerMeter] = useState<number>(1);
+  const [beaconPrice, setBeaconPrice] = useState<number>(10);
+  const [antennaPrice, setAntennaPrice] = useState<number>(50);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -90,9 +92,10 @@ const Index = () => {
         setAntennas([]); // Clear antennas
         setBarriers([]); // Clear barriers
         setZones([]); // Очищаем зоны при загрузке новой карты
-        setSwitches([]); // НОВОЕ: Очищаем коммутаторы
-        setCableDucts([]); // НОВОЕ: Очищаем кабель-каналы
+        setSwitches([]); // Очищаем коммутаторы
+        setCableDucts([]); // Очищаем кабель-каналы
         showSuccess('Карта загружена и готова к использованию!');
+        navigate('/technology-selection'); // Перенаправляем на страницу выбора технологии
       };
       reader.onerror = () => {
         showError('Ошибка при чтении файла карты.');
@@ -103,6 +106,7 @@ const Index = () => {
     }
   };
 
+  // Эти обработчики пока остаются здесь, но их вызовы будут изменены
   const handleBeaconsChange = useCallback((newBeacons: Beacon[]) => {
     setBeacons(newBeacons);
   }, []);
@@ -119,21 +123,19 @@ const Index = () => {
     setZones(newZones);
   }, []);
 
-  const handleSwitchesChange = useCallback((newSwitches: Switch[]) => { // НОВОЕ: Обработчик для коммутаторов
+  const handleSwitchesChange = useCallback((newSwitches: Switch[]) => {
     setSwitches(newSwitches);
   }, []);
 
-  const handleCableDuctsChange = useCallback((newCableDucts: CableDuct[]) => { // НОВОЕ: Обработчик для кабель-каналов
+  const handleCableDuctsChange = useCallback((newCableDucts: CableDuct[]) => {
     setCableDucts(newCableDucts);
   }, []);
 
-  // New handler for map dimensions change, passed to MapDisplay
   const handleMapDimensionsChange = useCallback((newWidth: number, newHeight: number) => {
     setMapWidth(newWidth);
     setMapHeight(newHeight);
   }, []);
 
-  // Function to be called by MapDisplay to trigger save
   const triggerSaveConfiguration = useCallback(() => {
     if (!mapImageSrc || mapWidth <= 0 || mapHeight <= 0) {
       showError('Невозможно сохранить: карта не загружена или размеры некорректны.');
@@ -148,11 +150,11 @@ const Index = () => {
       antennas,
       barriers,
       zones,
-      switches, // НОВОЕ: Включаем коммутаторы в сохраняемую конфигурацию
-      cableDucts, // НОВОЕ: Включаем кабель-каналы в сохраняемую конфигурацию
-      cablePricePerMeter, // Сохраняем цену за метр кабель-канала
-      defaultBeaconPrice: beaconPrice, // Сохраняем цену маяка по умолчанию
-      defaultAntennaPrice: antennaPrice, // Сохраняем цену антенны по умолчанию
+      switches,
+      cableDucts,
+      cablePricePerMeter,
+      defaultBeaconPrice: beaconPrice,
+      defaultAntennaPrice: antennaPrice,
     };
 
     try {
@@ -171,9 +173,8 @@ const Index = () => {
       console.error('Ошибка при сохранении конфигурации в файл:', error);
       showError('Не удалось сохранить конфигурацию карты в файл.');
     }
-  }, [mapImageSrc, mapWidth, mapHeight, beacons, antennas, barriers, zones, switches, cableDucts, cablePricePerMeter, beaconPrice, antennaPrice]); // Добавляем switches и cableDucts в зависимости
+  }, [mapImageSrc, mapWidth, mapHeight, beacons, antennas, barriers, zones, switches, cableDucts, cablePricePerMeter, beaconPrice, antennaPrice]);
 
-  // Function to handle loading from a file
   const handleLoadFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
@@ -187,7 +188,6 @@ const Index = () => {
         const content = e.target?.result as string;
         const loadedConfig: SavedMapConfig = JSON.parse(content);
 
-        // Update Index.tsx state
         setMapImageSrc(loadedConfig.mapImageSrc);
         setMapWidth(loadedConfig.mapWidthMeters);
         setMapHeight(loadedConfig.mapHeightMeters);
@@ -195,14 +195,14 @@ const Index = () => {
         setAntennas(loadedConfig.antennas || []);
         setBarriers(loadedConfig.barriers || []);
         setZones(loadedConfig.zones || []);
-        // При загрузке старых конфигов, где не было 'type', присваиваем 'main' по умолчанию
-        setSwitches(loadedConfig.switches || []); 
-        setCableDucts(loadedConfig.cableDucts?.map(duct => ({ ...duct, type: duct.type || 'main' })) || []); 
-        setCablePricePerMeter(loadedConfig.cablePricePerMeter ?? 1); // Загружаем цену за метр кабель-канала, по умолчанию 1
-        setBeaconPrice(loadedConfig.defaultBeaconPrice ?? 10); // Загружаем цену маяка по умолчанию
-        setAntennaPrice(loadedConfig.defaultAntennaPrice ?? 50); // Загружаем цену антенны по умолчанию
+        setSwitches(loadedConfig.switches || []);
+        setCableDucts(loadedConfig.cableDucts?.map(duct => ({ ...duct, type: duct.type || 'main' })) || []);
+        setCablePricePerMeter(loadedConfig.cablePricePerMeter ?? 1);
+        setBeaconPrice(loadedConfig.defaultBeaconPrice ?? 10);
+        setAntennaPrice(loadedConfig.defaultAntennaPrice ?? 50);
 
         showSuccess('Конфигурация карты загружена из файла!');
+        navigate('/technology-selection'); // Перенаправляем на страницу выбора технологии
       } catch (error) {
         console.error('Ошибка при чтении или парсинге файла конфигурации:', error);
         showError('Не удалось загрузить конфигурацию карты. Убедитесь, что файл корректен.');
@@ -250,38 +250,6 @@ const Index = () => {
               Загрузить карту
             </Button>
           </div>
-
-          {mapImageSrc && mapWidth > 0 && mapHeight > 0 ? (
-            <MapDisplay
-              mapImageSrc={mapImageSrc}
-              mapWidthMeters={mapWidth}
-              mapHeightMeters={mapHeight}
-              onBeaconsChange={handleBeaconsChange}
-              initialBeacons={beacons}
-              onAntennasChange={handleAntennasChange}
-              initialAntennas={antennas}
-              onBarriersChange={handleBarriersChange}
-              initialBarriers={barriers}
-              onZonesChange={handleZonesChange}
-              initialZones={zones}
-              onSwitchesChange={handleSwitchesChange} // НОВОЕ: Передаем обработчик для коммутаторов
-              initialSwitches={switches} // НОВОЕ: Передаем начальные коммутаторы
-              onCableDuctsChange={handleCableDuctsChange} // НОВОЕ: Передаем обработчик для кабель-каналов
-              initialCableDucts={cableDucts} // НОВОЕ: Передаем начальные кабель-каналы
-              onSaveConfiguration={triggerSaveConfiguration}
-              onMapDimensionsChange={handleMapDimensionsChange}
-              beaconPrice={beaconPrice}
-              onBeaconPriceChange={setBeaconPrice}
-              antennaPrice={antennaPrice}
-              onAntennaPriceChange={setAntennaPrice}
-              cablePricePerMeter={cablePricePerMeter}
-              onCablePricePerMeterChange={setCablePricePerMeter}
-            />
-          ) : (
-            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-              Пожалуйста, загрузите карту, чтобы начать размещение маяков.
-            </div>
-          )}
 
           {/* New section for file-based save/load */}
           <div className="p-4 border rounded-md flex flex-wrap gap-2 justify-center">
