@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { Map, View } from 'ol';
 import ImageLayer from 'ol/layer/Image';
 import ImageStatic from 'ol/source/ImageStatic';
-import { get as getProjection, Projection } from 'ol/proj';
+import { Projection } from 'ol/proj';
 import { getCenter } from 'ol/extent';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -10,122 +10,20 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Polygon from 'ol/geom/Polygon';
 import LineString from 'ol/geom/LineString';
-import Circle from 'ol/geom/Circle';
 import Style from 'ol/style/Style';
-import Icon from 'ol/style/Icon';
-import Fill from 'ol/style/Fill';
-import Stroke from 'ol/style/Stroke';
-import CircleStyle from 'ol/style/Circle';
 import Text from 'ol/style/Text';
 import { Coordinate } from 'ol/coordinate';
-import { Draw, Modify, Snap, Interaction } from 'ol/interaction';
-import { showSuccess, showError } from '@/utils/toast';
-
-// --- Стили, определенные за пределами компонента для избежания проблем с инициализацией ---
-const beaconStyle = new Style({
-  image: new Icon({
-    anchor: [0.5, 1],
-    src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="red" width="24px" height="24px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>',
-    scale: 1.5,
-  }),
-});
-
-const barrierStyle = new Style({
-  fill: new Fill({
-    color: 'rgba(255, 0, 0, 0.3)',
-  }),
-  stroke: new Stroke({
-    color: 'red',
-    width: 2,
-  }),
-});
-
-const zoneStyle = new Style({
-  fill: new Fill({
-    color: 'rgba(0, 255, 0, 0.1)',
-  }),
-  stroke: new Stroke({
-    color: 'green',
-    width: 1,
-  }),
-});
-
-const switchStyle = new Style({
-  image: new Icon({
-    anchor: [0.5, 1],
-    src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="purple" width="24px" height="24px"><path d="M19 1H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm-1 14h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zM8 5h8v2H8V5zm0 4h8v2H8V9zm0 4h8v2H8v-2z"/></svg>',
-    scale: 1.5,
-  }),
-});
-
-const sketchStyle = new Style({
-  fill: new Fill({
-    color: 'rgba(255, 255, 255, 0.2)',
-  }),
-  stroke: new Stroke({
-    color: 'rgba(255, 0, 0, 0.7)',
-    width: 2,
-  }),
-  image: new CircleStyle({
-    radius: 5,
-    fill: new Fill({
-      color: 'rgba(255, 0, 0, 0.7)',
-    }),
-    stroke: new Stroke({
-      color: 'rgba(255, 255, 255, 0.8)',
-      width: 1,
-    }),
-  }),
-});
-
-const rescaleLineStyle = new Style({
-  stroke: new Stroke({
-    color: 'rgba(255, 165, 0, 0.7)',
-    width: 3,
-  }),
-});
-
-const hoverStyle = new Style({
-  stroke: new Stroke({
-    color: 'cyan',
-    width: 3,
-  }),
-  image: new CircleStyle({
-    radius: 10,
-    stroke: new Stroke({
-      color: 'cyan',
-      width: 3,
-    }),
-    fill: new Fill({
-      color: 'rgba(0, 255, 255, 0.1)',
-    }),
-  }),
-});
-
-const zoneHoverStyle = new Style({
-  stroke: new Stroke({
-    color: 'orange',
-    width: 3,
-  }),
-  fill: new Fill({
-    color: 'rgba(255, 165, 0, 0.2)',
-  }),
-});
-
-// Новые стили для AOA и зональных антенн
-const aoaAntennaIcon = new Icon({
-  anchor: [0.5, 1],
-  src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="blue" width="24px" height="24px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>',
-  scale: 1.5,
-});
-
-const zonalAntennaIcon = new Icon({
-  anchor: [0.5, 1],
-  src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="green" width="24px" height="24px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>',
-  scale: 1.5,
-});
-
-// --- Конец стилей, определенных за пределами компонента ---
+import { useMapInteractions, MapInteractionType } from '@/hooks/useMapInteractions';
+import {
+  beaconStyle,
+  barrierStyle,
+  zoneStyle,
+  switchStyle,
+  hoverStyle,
+  zoneHoverStyle,
+  getAntennaStyle,
+  getCableDuctStyle,
+} from '@/utils/mapStyles';
 
 // Интерфейсы для данных карты (повторяются из MapContext для ясности)
 interface Beacon {
@@ -142,7 +40,7 @@ interface Antenna {
   angle: number;
   range: number;
   price?: number;
-  type: 'aoa' | 'zonal'; // Добавляем тип антенны
+  type: 'aoa' | 'zonal';
 }
 
 interface Zone {
@@ -161,26 +59,6 @@ interface CableDuct {
   path: Coordinate[];
   type: 'main' | 'connection';
 }
-
-// Типы активных взаимодействий
-export type MapInteractionType =
-  | 'drawBarrier'
-  | 'drawZone'
-  | 'drawCableDuct'
-  | 'manualBeacon'
-  | 'manualAntenna' // Теперь может быть AOA или Zonal в зависимости от страницы
-  | 'manualSwitch'
-  | 'editBeacon'
-  | 'editAntenna'
-  | 'editSwitch'
-  | 'editCableDuct'
-  | 'deleteBeacon'
-  | 'deleteAntenna'
-  | 'deleteZone'
-  | 'deleteSwitch'
-  | 'deleteCableDuct'
-  | 'rescale'
-  | null;
 
 interface MapCoreProps {
   mapImageSrc: string;
@@ -205,8 +83,8 @@ interface MapCoreProps {
   onFeatureModify: (type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => void;
   onFeatureDelete: (type: 'beacon' | 'antenna' | 'zone' | 'switch' | 'cableDuct', id: string) => void;
   onRescaleDrawEnd: (drawnLengthMeters: number) => void;
-  beaconPrice: number; // Passed for new beacon creation
-  antennaPrice: number; // Passed for new antenna creation
+  beaconPrice: number;
+  antennaPrice: number;
 }
 
 const MapCore: React.FC<MapCoreProps> = ({
@@ -260,85 +138,7 @@ const MapCore: React.FC<MapCoreProps> = ({
   const rescaleDrawSource = useRef(new VectorSource({ features: [] }));
   const rescaleDrawLayer = useRef(new VectorLayer({ source: rescaleDrawSource.current }));
 
-  const cableDuctLineStyle = useMemo(() => new Style({
-    stroke: new Stroke({
-      color: 'orange',
-      width: 3,
-      lineDash: [5, 5],
-    }),
-  }), []);
-
-  const getAntennaStyle = useCallback((feature: Feature) => {
-    const range = feature.get('range');
-    const position = feature.getGeometry()?.getCoordinates();
-    const type = feature.get('type'); // Получаем тип антенны
-
-    const styles: Style[] = [
-      new Style({
-        image: type === 'zonal' ? zonalAntennaIcon : aoaAntennaIcon, // Используем разные иконки
-      }),
-    ];
-
-    if (showAntennaRanges) {
-      if (position && range !== undefined) {
-        styles.push(
-          new Style({
-            geometry: new Circle(position, range),
-            fill: new Fill({
-              color: type === 'zonal' ? 'rgba(0, 255, 0, 0.1)' : 'rgba(0, 0, 255, 0.1)', // Разные цвета для радиуса
-            }),
-            stroke: new Stroke({
-              color: type === 'zonal' ? 'green' : 'blue', // Разные цвета для обводки радиуса
-              width: 1,
-            }),
-          })
-        );
-      }
-    }
-    return styles;
-  }, [showAntennaRanges]);
-
-  const getCableDuctStyle = useCallback((feature: Feature) => {
-    const styles: Style[] = [cableDuctLineStyle];
-
-    if (showCableDuctLengths) {
-      const geometry = feature.getGeometry();
-      if (geometry instanceof LineString) {
-        const coordinates = geometry.getCoordinates();
-        for (let i = 0; i < coordinates.length - 1; i++) {
-          const p1 = coordinates[i];
-          const p2 = coordinates[i + 1];
-
-          const segmentLength = Math.sqrt(
-            Math.pow(p2[0] - p1[0], 2) +
-            Math.pow(p2[1] - p1[1], 2)
-          );
-
-          const midpoint: Coordinate = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
-
-          styles.push(new Style({
-            geometry: new Point(midpoint),
-            text: new Text({
-              text: `${segmentLength.toFixed(2)} м`,
-              font: '12px Calibri,sans-serif',
-              fill: new Fill({ color: 'black' }),
-              stroke: new Stroke({ color: 'white', width: 3 }),
-              offsetY: -10,
-              placement: 'point',
-            }),
-          }));
-        }
-      }
-    }
-
-    if (feature.get('id') === hoveredFeatureId) {
-      styles.push(hoverStyle);
-    }
-
-    return styles;
-  }, [showCableDuctLengths, cableDuctLineStyle, hoveredFeatureId]);
-
-  // Effect for initializing the map
+  // Initialize map
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -383,6 +183,25 @@ const MapCore: React.FC<MapCoreProps> = ({
     };
   }, [mapImageSrc, mapWidthMeters, mapHeightMeters]);
 
+  // Use the custom hook for interactions
+  useMapInteractions({
+    mapInstance,
+    activeInteraction,
+    beaconVectorSource,
+    antennaVectorSource,
+    barrierVectorSource,
+    zoneVectorSource,
+    switchVectorSource,
+    cableDuctVectorSource,
+    rescaleDrawSource,
+    onFeatureAdd,
+    onFeatureModify,
+    onFeatureDelete,
+    onRescaleDrawEnd,
+    beaconPrice,
+    antennaPrice,
+  });
+
   // Effects to update layer styles based on state changes
   useEffect(() => {
     if (mapInstance) {
@@ -400,7 +219,7 @@ const MapCore: React.FC<MapCoreProps> = ({
   useEffect(() => {
     if (mapInstance) {
       antennaVectorLayer.current.setStyle((feature) => {
-        const styles = getAntennaStyle(feature);
+        const styles = getAntennaStyle(feature, showAntennaRanges);
         if (feature.get('id') === hoveredFeatureId) {
           styles.push(hoverStyle);
         }
@@ -408,7 +227,7 @@ const MapCore: React.FC<MapCoreProps> = ({
       });
       antennaVectorLayer.current.changed();
     }
-  }, [mapInstance, getAntennaStyle, hoveredFeatureId]);
+  }, [mapInstance, showAntennaRanges, hoveredFeatureId]);
 
   useEffect(() => {
     if (mapInstance) {
@@ -457,10 +276,10 @@ const MapCore: React.FC<MapCoreProps> = ({
 
   useEffect(() => {
     if (mapInstance) {
-      cableDuctVectorLayer.current.setStyle((feature) => getCableDuctStyle(feature));
+      cableDuctVectorLayer.current.setStyle((feature) => getCableDuctStyle(feature, showCableDuctLengths, hoveredFeatureId));
       cableDuctVectorLayer.current.changed();
     }
-  }, [mapInstance, getCableDuctStyle]);
+  }, [mapInstance, showCableDuctLengths, hoveredFeatureId]);
 
   // Effect to update layer visibility
   useEffect(() => {
@@ -496,7 +315,7 @@ const MapCore: React.FC<MapCoreProps> = ({
         height: antenna.height,
         angle: antenna.angle,
         range: antenna.range,
-        type: antenna.type, // Передаем тип антенны в фичу
+        type: antenna.type,
       });
       antennaVectorSource.current.addFeature(feature);
     });
@@ -546,303 +365,6 @@ const MapCore: React.FC<MapCoreProps> = ({
       cableDuctVectorSource.current.addFeature(feature);
     });
   }, [cableDucts]);
-
-  // Consolidated useEffect for managing all map interactions
-  useEffect(() => {
-    if (!mapInstance) return;
-
-    let currentInteraction: Interaction | null = null;
-    let currentClickListener: ((event: any) => void) | null = null;
-    let currentSnapInteraction: Snap | null = null;
-
-    rescaleDrawSource.current.clear();
-
-    // Remove existing interactions before adding new ones
-    mapInstance.getInteractions().forEach(interaction => {
-      if (interaction instanceof Draw || interaction instanceof Modify || interaction instanceof Snap) {
-        mapInstance.removeInteraction(interaction);
-      }
-    });
-    mapInstance.un('click', currentClickListener || (() => {})); // Remove previous click listener
-
-    switch (activeInteraction) {
-      case 'drawBarrier':
-        currentInteraction = new Draw({
-          source: barrierVectorSource.current,
-          type: 'Polygon',
-          style: sketchStyle,
-        });
-        (currentInteraction as Draw).on('drawend', (event: any) => {
-          onFeatureAdd('barrier', event.feature.getGeometry()?.getCoordinates() as Coordinate[][][]);
-          showSuccess('Барьер добавлен!');
-        });
-        currentSnapInteraction = new Snap({ source: barrierVectorSource.current });
-        break;
-      case 'drawZone':
-        currentInteraction = new Draw({
-          source: zoneVectorSource.current,
-          type: 'Polygon',
-          style: sketchStyle,
-        });
-        (currentInteraction as Draw).on('drawend', (event: any) => {
-          onFeatureAdd('zone', {
-            id: `zone-${Date.now()}`,
-            polygon: event.feature.getGeometry()?.getCoordinates() as Coordinate[][][],
-            beaconCount: 0,
-          });
-          showSuccess('Зона добавлена вручную!');
-        });
-        currentSnapInteraction = new Snap({ source: zoneVectorSource.current });
-        break;
-      case 'drawCableDuct':
-        currentInteraction = new Draw({
-          source: cableDuctVectorSource.current,
-          type: 'LineString',
-          style: sketchStyle,
-        });
-        (currentInteraction as Draw).on('drawend', (event: any) => {
-          onFeatureAdd('cableDuct', {
-            id: `cableDuct-${Date.now()}`,
-            path: event.feature.getGeometry()?.getCoordinates() as Coordinate[],
-            type: 'main',
-          });
-          showSuccess('Кабель-канал добавлен!');
-        });
-        currentSnapInteraction = new Snap({ source: cableDuctVectorSource.current });
-        break;
-      case 'editBeacon':
-        currentInteraction = new Modify({
-          source: beaconVectorSource.current,
-          style: sketchStyle,
-        });
-        (currentInteraction as Modify).on('modifyend', (event: any) => {
-          event.features.forEach((feature: Feature) => {
-            const id = feature.get('id');
-            const geometry = feature.getGeometry();
-            if (id && geometry instanceof Point) {
-              onFeatureModify('beacon', id, geometry.getCoordinates() as Coordinate);
-            }
-          });
-          showSuccess('Позиция маяка обновлена!');
-        });
-        currentSnapInteraction = new Snap({ source: beaconVectorSource.current });
-        break;
-      case 'editAntenna':
-        currentInteraction = new Modify({
-          source: antennaVectorSource.current,
-          style: sketchStyle,
-        });
-        (currentInteraction as Modify).on('modifyend', (event: any) => {
-          event.features.forEach((feature: Feature) => {
-            const id = feature.get('id');
-            const geometry = feature.getGeometry();
-            if (id && geometry instanceof Point) {
-              onFeatureModify('antenna', id, geometry.getCoordinates() as Coordinate);
-            }
-          });
-          showSuccess('Позиция антенны обновлена!');
-        });
-        currentSnapInteraction = new Snap({ source: antennaVectorSource.current });
-        break;
-      case 'editSwitch':
-        currentInteraction = new Modify({
-          source: switchVectorSource.current,
-          style: sketchStyle,
-        });
-        (currentInteraction as Modify).on('modifyend', (event: any) => {
-          event.features.forEach((feature: Feature) => {
-            const id = feature.get('id');
-            const geometry = feature.getGeometry();
-            if (id && geometry instanceof Point) {
-              onFeatureModify('switch', id, geometry.getCoordinates() as Coordinate);
-            }
-          });
-          showSuccess('Позиция коммутатора обновлена!');
-        });
-        currentSnapInteraction = new Snap({ source: switchVectorSource.current });
-        break;
-      case 'editCableDuct':
-        currentInteraction = new Modify({
-          source: cableDuctVectorSource.current,
-          style: sketchStyle,
-        });
-        (currentInteraction as Modify).on('modifyend', (event: any) => {
-          event.features.forEach((feature: Feature) => {
-            const id = feature.get('id');
-            const geometry = feature.getGeometry();
-            if (id && geometry instanceof LineString) {
-              onFeatureModify('cableDuct', id, geometry.getCoordinates() as Coordinate[]);
-            }
-          });
-          showSuccess('Кабель-канал обновлен!');
-        });
-        currentSnapInteraction = new Snap({ source: cableDuctVectorSource.current });
-        break;
-      case 'rescale':
-        currentInteraction = new Draw({
-          source: rescaleDrawSource.current,
-          type: 'LineString',
-          style: rescaleLineStyle,
-          maxPoints: 2,
-        });
-        (currentInteraction as Draw).on('drawend', (event: any) => {
-          const geometry = event.feature.getGeometry();
-          if (geometry instanceof LineString) {
-            const coords = geometry.getCoordinates();
-            if (coords.length === 2) {
-              const [startCoord, endCoord] = coords;
-              const drawnLengthMeters = Math.sqrt(
-                Math.pow(endCoord[0] - startCoord[0], 2) +
-                Math.pow(endCoord[1] - startCoord[1], 2)
-              );
-              onRescaleDrawEnd(drawnLengthMeters);
-            }
-          }
-        });
-        break;
-      case 'manualBeacon':
-      case 'manualAntenna':
-      case 'manualSwitch':
-      case 'deleteBeacon':
-      case 'deleteAntenna':
-      case 'deleteZone':
-      case 'deleteSwitch':
-      case 'deleteCableDuct':
-        currentClickListener = (event: any) => {
-          const coordinate = event.coordinate;
-
-          if (activeInteraction === 'manualBeacon') {
-            onFeatureAdd('beacon', {
-              id: `beacon-${Date.now()}`,
-              position: coordinate,
-              price: beaconPrice,
-            });
-            showSuccess('Маяк добавлен вручную!');
-          } else if (activeInteraction === 'manualAntenna') {
-            // Тип антенны будет определен на странице, которая вызывает MapCore
-            onFeatureAdd('antenna', {
-              id: `antenna-${Date.now()}`,
-              position: coordinate,
-              height: 2, // Default height
-              angle: 0, // Default angle
-              range: 10, // Default range
-              price: antennaPrice,
-              type: 'aoa', // В MapCore по умолчанию AOA, будет переопределено в ZoneTracking
-            });
-            showSuccess('Антенна добавлена вручную!');
-          } else if (activeInteraction === 'manualSwitch') {
-            onFeatureAdd('switch', {
-              id: `switch-${Date.now()}`,
-              position: coordinate,
-            });
-            showSuccess('Коммутатор добавлен вручную!');
-          } else if (activeInteraction === 'deleteBeacon') {
-            mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
-              const featureId = feature.get('id');
-              if (featureId && feature.getGeometry()?.getType() === 'Point') {
-                onFeatureDelete('beacon', featureId);
-                showSuccess('Маяк удален!');
-                return true;
-              }
-              return false;
-            }, {
-              layerFilter: (layer) => layer === beaconVectorLayer.current,
-              hitTolerance: 5,
-            });
-          } else if (activeInteraction === 'deleteAntenna') {
-            mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
-              const featureId = feature.get('id');
-              if (featureId && feature.getGeometry()?.getType() === 'Point') {
-                onFeatureDelete('antenna', featureId);
-                showSuccess('Антенна удалена!');
-                return true;
-              }
-              return false;
-            }, {
-              layerFilter: (layer) => layer === antennaVectorLayer.current,
-              hitTolerance: 5,
-            });
-          } else if (activeInteraction === 'deleteZone') {
-            mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
-              const featureId = feature.get('id');
-              if (featureId && feature.getGeometry()?.getType() === 'Polygon') {
-                onFeatureDelete('zone', featureId);
-                showSuccess('Зона удалена!');
-                return true;
-              }
-              return false;
-            }, {
-              layerFilter: (layer) => layer === zoneVectorLayer.current,
-              hitTolerance: 5,
-            });
-          } else if (activeInteraction === 'deleteSwitch') {
-            mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
-              const featureId = feature.get('id');
-              if (featureId && feature.getGeometry()?.getType() === 'Point') {
-                onFeatureDelete('switch', featureId);
-                showSuccess('Коммутатор удален!');
-                return true;
-              }
-              return false;
-            }, {
-              layerFilter: (layer) => layer === switchVectorLayer.current,
-              hitTolerance: 5,
-            });
-          } else if (activeInteraction === 'deleteCableDuct') {
-            mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
-              const featureId = feature.get('id');
-              if (featureId && feature.getGeometry()?.getType() === 'LineString') {
-                onFeatureDelete('cableDuct', featureId);
-                showSuccess('Кабель-канал удален!');
-                return true;
-              }
-              return false;
-            }, {
-              layerFilter: (layer) => layer === cableDuctVectorLayer.current,
-              hitTolerance: 5,
-            });
-          }
-        };
-        break;
-    }
-
-    if (currentInteraction) {
-      mapInstance.addInteraction(currentInteraction);
-    }
-    if (currentSnapInteraction) {
-      mapInstance.addInteraction(currentSnapInteraction);
-    }
-    if (currentClickListener) {
-      mapInstance.on('click', currentClickListener);
-    }
-
-    return () => {
-      if (mapInstance) {
-        if (currentInteraction) {
-          mapInstance.removeInteraction(currentInteraction);
-        }
-        if (currentSnapInteraction) {
-          mapInstance.removeInteraction(currentSnapInteraction);
-        }
-        if (currentClickListener) {
-          mapInstance.un('click', currentClickListener);
-        }
-      }
-      rescaleDrawSource.current.clear();
-    };
-
-  }, [
-    mapInstance,
-    activeInteraction,
-    sketchStyle,
-    rescaleLineStyle,
-    onFeatureAdd,
-    onFeatureModify,
-    onFeatureDelete,
-    onRescaleDrawEnd,
-    beaconPrice,
-    antennaPrice,
-  ]);
 
   // Effect for pointermove to detect hovered features
   useEffect(() => {
