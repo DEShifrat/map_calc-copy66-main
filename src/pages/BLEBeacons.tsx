@@ -362,11 +362,11 @@ const BLEBeacons: React.FC = () => {
                     <TooltipTrigger asChild>
                       <Button onClick={() => setActiveInteraction(null)} variant="secondary" className="flex items-center justify-start gap-2 px-4 h-10">
                         <X className="h-4 w-4" />
-                        <span>Отменить действие</span>
+                        <span>Отключить режим рисования</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Отменить действие</p>
+                      <p>Отключить режим рисования</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
