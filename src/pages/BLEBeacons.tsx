@@ -8,8 +8,10 @@ import MapControls from '@/components/MapControls';
 import RescaleDialog from '@/components/RescaleDialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
+import Polygon from 'ol/geom/Polygon'; // Import Polygon for adaptive placement
 
 const BLEBeacons: React.FC = () => {
   const { state, actions } = useMap();
@@ -18,11 +20,11 @@ const BLEBeacons: React.FC = () => {
     mapWidthMeters,
     mapHeightMeters,
     beacons,
-    antennas, // Антенны могут быть неактивны, но их данные все равно в контексте
+    antennas,
     barriers,
-    zones, // Зоны могут быть неактивны, но их данные все равно в контексте
-    switches, // Коммутаторы могут быть неактивны, но их данные все равно в контексте
-    cableDucts, // Кабель-каналы могут быть неактивны, но их данные все равно в контексте
+    zones,
+    switches,
+    cableDucts,
     showBeacons,
     showAntennas,
     showBarriers,
@@ -39,7 +41,8 @@ const BLEBeacons: React.FC = () => {
   const [activeInteraction, setActiveInteraction] = useState<MapInteractionType>(null);
   const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState(false);
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
-  const [beaconStepInput, setBeaconStepInput] = useState<number>(5); // New state for beacon step
+  const [beaconStepInput, setBeaconStepInput] = useState<number>(5);
+  const [beaconPlacementType, setBeaconPlacementType] = useState<'row' | 'chessboard' | 'triangular' | 'adaptive'>('row');
 
   const handleInteractionChange = (interaction: MapInteractionType) => {
     setActiveInteraction(prev => (prev === interaction ? null : interaction));
@@ -51,34 +54,34 @@ const BLEBeacons: React.FC = () => {
     } else if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
     }
-    setActiveInteraction(null); // Deactivate interaction after drawing
+    setActiveInteraction(null);
   }, [actions, beacons, barriers]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.map(b => b.id === id ? { ...b, position: newPosition as Coordinate } : b));
     }
-    setActiveInteraction(null); // Deactivate interaction after modifying
+    setActiveInteraction(null);
   }, [actions, beacons]);
 
   const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'switch' | 'cableDuct', id: string) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.filter(b => b.id !== id));
     } else if (type === 'barrier') {
-      // Для барьеров нет ID, удаляем по координатам или последнему добавленному
-      // В данном случае, если активна кнопка удаления барьера, то MapCore сам обрабатывает удаление
-      // и мы просто обновляем состояние барьеров.
-      // Для простоты, здесь мы не будем реализовывать удаление конкретного барьера по ID,
-      // так как MapCore уже делает это через forEachFeatureAtPixel.
-      // Если бы барьеры имели ID, то логика была бы аналогична маякам.
+      // MapCore handles barrier deletion visually, we just need to update the state
+      // This part of logic is handled by MapCore's click listener for 'deleteBarrier'
+      // and then it calls onFeatureDelete.
+      // Since barriers don't have explicit IDs in the current state structure,
+      // a more robust deletion would involve finding the barrier by its coordinates
+      // or by the feature object itself. For now, we rely on MapCore's direct deletion.
     }
-    setActiveInteraction(null); // Deactivate interaction after deleting
+    setActiveInteraction(null);
   }, [actions, beacons]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {
     setDrawnLengthForRescale(drawnLength);
     setIsRescaleDialogOpen(true);
-    setActiveInteraction(null); // Deactivate rescale draw
+    setActiveInteraction(null);
   }, []);
 
   const handleRescaleConfirm = useCallback((realWorldLength: number) => {
@@ -89,7 +92,6 @@ const BLEBeacons: React.FC = () => {
 
       actions.setMapDimensions(newWidth, newHeight);
 
-      // Recalculate positions for all features based on the new scale
       actions.setBeacons(beacons.map(b => ({
         ...b,
         position: [b.position[0] * scaleFactor, b.position[1] * scaleFactor],
@@ -97,7 +99,7 @@ const BLEBeacons: React.FC = () => {
       actions.setAntennas(antennas.map(a => ({
         ...a,
         position: [a.position[0] * scaleFactor, a.position[1] * scaleFactor],
-        range: a.range * scaleFactor, // Scale range as well
+        range: a.range * scaleFactor,
       })));
       actions.setBarriers(barriers.map(barrier => barrier.map(ring => ring.map(coord => [coord[0] * scaleFactor, coord[1] * scaleFactor]))));
       actions.setZones(zones.map(zone => ({
@@ -159,6 +161,13 @@ const BLEBeacons: React.FC = () => {
     }
   }, [mapImageSrc, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, cablePricePerMeter, beaconPrice, antennaPrice]);
 
+  const isPointInsideAnyBarrier = useCallback((point: Coordinate): boolean => {
+    return barriers.some(barrierCoords => {
+      const polygon = new Polygon(barrierCoords);
+      return polygon.intersectsCoordinate(point);
+    });
+  }, [barriers]);
+
   const handleAutoCalculateBeacons = () => {
     if (beaconStepInput <= 0) {
       showError('Шаг маяков должен быть положительным числом.');
@@ -168,13 +177,40 @@ const BLEBeacons: React.FC = () => {
     const newBeacons: typeof beacons = [];
     let currentId = beacons.length > 0 ? Math.max(...beacons.map(b => parseInt(b.id.split('-')[1]))) + 1 : 1;
 
-    for (let y = beaconStepInput / 2; y < mapHeightMeters; y += beaconStepInput) {
-      for (let x = beaconStepInput / 2; x < mapWidthMeters; x += beaconStepInput) {
-        newBeacons.push({
-          id: `beacon-${currentId++}`,
-          position: [x, y],
-          price: beaconPrice, // Use current beacon price from context
-        });
+    const step = beaconStepInput;
+    const sqrt3_2 = Math.sqrt(3) / 2;
+
+    for (let y = 0; y < mapHeightMeters; y += (beaconPlacementType === 'triangular' ? step * sqrt3_2 : step)) {
+      for (let x = 0; x < mapWidthMeters; x += step) {
+        let currentX = x;
+        let currentY = y;
+
+        if (beaconPlacementType === 'chessboard' && Math.floor(y / step) % 2 !== 0) {
+          currentX += step / 2;
+        } else if (beaconPlacementType === 'triangular' && Math.floor(y / (step * sqrt3_2)) % 2 !== 0) {
+          currentX += step / 2;
+        }
+
+        // Ensure beacon is within map bounds
+        if (currentX >= 0 && currentX <= mapWidthMeters && currentY >= 0 && currentY <= mapHeightMeters) {
+          const newBeaconPosition: Coordinate = [currentX, currentY];
+
+          if (beaconPlacementType === 'adaptive') {
+            if (!isPointInsideAnyBarrier(newBeaconPosition)) {
+              newBeacons.push({
+                id: `beacon-${currentId++}`,
+                position: newBeaconPosition,
+                price: beaconPrice,
+              });
+            }
+          } else {
+            newBeacons.push({
+              id: `beacon-${currentId++}`,
+              position: newBeaconPosition,
+              price: beaconPrice,
+            });
+          }
+        }
       }
     }
     actions.setBeacons(newBeacons);
@@ -299,6 +335,23 @@ const BLEBeacons: React.FC = () => {
                     min="1"
                     step="1"
                   />
+                </div>
+                <div className="space-y-2 mb-4">
+                  <Label htmlFor="beaconPlacementType">Тип расстановки</Label>
+                  <Select
+                    value={beaconPlacementType}
+                    onValueChange={(value: 'row' | 'chessboard' | 'triangular' | 'adaptive') => setBeaconPlacementType(value)}
+                  >
+                    <SelectTrigger id="beaconPlacementType">
+                      <SelectValue placeholder="Выберите тип" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="row">Строчный</SelectItem>
+                      <SelectItem value="chessboard">Шахматный</SelectItem>
+                      <SelectItem value="triangular">Треугольный</SelectItem>
+                      <SelectItem value="adaptive">Адаптивный (с учетом барьеров)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button onClick={handleAutoCalculateBeacons} className="w-full">
                   Авторасчет маяков
