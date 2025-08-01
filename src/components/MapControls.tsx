@@ -200,6 +200,73 @@ const getCableDuctStyle = (feature: Feature, showCableDuctLengths: boolean) => {
 };
 // --- Конец стилей ---
 
+// Helper function to calculate the length of a single cable duct
+const calculateCableDuctLength = (path: Coordinate[]): number => {
+  let length = 0;
+  for (let i = 0; i < path.length - 1; i++) {
+    const p1 = path[i];
+    const p2 = path[i + 1];
+    length += Math.sqrt(Math.pow(p2[0] - p1[0], 2) + Math.pow(p2[1] - p1[1], 2));
+  }
+  return length;
+};
+
+// Helper to calculate length along a LineString between two points on it.
+// This function approximates by finding the closest vertices to the given points
+// and summing the lengths of segments between those vertices. It's an approximation
+// and might not be perfectly accurate if points fall in the middle of long segments.
+const calculateLengthBetweenPointsOnLineString = (
+    lineString: LineString,
+    point1: Coordinate,
+    point2: Coordinate
+): number => {
+    const coords = lineString.getCoordinates();
+    if (coords.length < 2) return 0;
+
+    // Find the closest vertices to point1 and point2
+    let closestIdx1 = -1;
+    let closestDist1 = Infinity;
+    let closestIdx2 = -1;
+    let closestDist2 = Infinity;
+
+    for (let i = 0; i < coords.length; i++) {
+        const distToP1 = Math.sqrt(
+            Math.pow(coords[i][0] - point1[0], 2) + Math.pow(coords[i][1] - point1[1], 2)
+        );
+        const distToP2 = Math.sqrt(
+            Math.pow(coords[i][0] - point2[0], 2) + Math.pow(coords[i][1] - point2[1], 2)
+        );
+
+        if (distToP1 < closestDist1) {
+            closestDist1 = distToP1;
+            closestIdx1 = i;
+        }
+        if (distToP2 < closestDist2) {
+            closestDist2 = distToP2;
+            closestIdx2 = i;
+        }
+    }
+
+    if (closestIdx1 === -1 || closestIdx2 === -1) return 0; // Should not happen if points are on the line
+
+    // If points are very close to the same vertex, consider length 0
+    // Using a small tolerance (e.g., 0.1 meters)
+    if (closestIdx1 === closestIdx2 && closestDist1 < 0.1 && closestDist2 < 0.1) return 0;
+
+    let segmentLength = 0;
+    const startIdx = Math.min(closestIdx1, closestIdx2);
+    const endIdx = Math.max(closestIdx1, closestIdx2);
+
+    for (let i = startIdx; i < endIdx; i++) {
+        segmentLength += Math.sqrt(
+            Math.pow(coords[i+1][0] - coords[i][0], 2) +
+            Math.pow(coords[i+1][1] - coords[i][1], 2)
+        );
+    }
+    return segmentLength;
+};
+
+
 const MapControls: React.FC<MapControlsProps> = ({
   mapImageSrc,
   mapWidthMeters,
@@ -340,30 +407,6 @@ const MapControls: React.FC<MapControlsProps> = ({
     exportMap.renderSync();
   };
 
-  // Helper function to calculate the length of a single cable duct
-  const calculateCableDuctLength = (path: Coordinate[]): number => {
-    let length = 0;
-    for (let i = 0; i < path.length - 1; i++) {
-      const p1 = path[i];
-      const p2 = path[i + 1];
-      length += Math.sqrt(Math.pow(p2[0] - p1[0], 2) + Math.pow(p2[1] - p1[1], 2));
-    }
-    return length;
-  };
-
-  // Helper to check if a point is close to any switch
-  const isPointNearSwitch = (point: Coordinate): boolean => {
-    const tolerance = 5; // meters
-    return switches.some(s => {
-      const switchPos = s.position;
-      const distance = Math.sqrt(
-        Math.pow(point[0] - switchPos[0], 2) +
-        Math.pow(point[1] - switchPos[1], 2)
-      );
-      return distance <= tolerance;
-    });
-  };
-
   // Calculate total cable duct length
   const totalCableDuctLength = React.useMemo(() => {
     let totalLength = 0;
@@ -376,66 +419,71 @@ const MapControls: React.FC<MapControlsProps> = ({
   // Calculate conditional cable duct length based on the provided formula
   const conditionalCableDuctLength = React.useMemo(() => {
     let totalLength = 0;
-    const mainDucts = cableDucts.filter(duct => duct.type === 'main');
-    const connectionDucts = cableDucts.filter(duct => duct.type === 'connection');
 
-    // Length for main cable ducts
-    mainDucts.forEach(mainDuct => {
-      const startConnected = isPointNearSwitch(mainDuct.path[0]);
-      const endConnected = isPointNearSwitch(mainDuct.path[mainDuct.path.length - 1]);
-
-      if (startConnected || endConnected) {
-        const mainDuctLength = calculateCableDuctLength(mainDuct.path);
-        let connectedAntennaCount = 0;
-        const mainDuctGeometry = new LineString(mainDuct.path);
-        const tolerance = 0.1; // Small tolerance for point on line check
-
-        // Count antennas connected to this specific main duct
-        connectionDucts.forEach(connDuct => {
-          const [point1, point2] = connDuct.path;
-          let connectionPointCoord: Coordinate | null = null;
-
-          // Determine which point of the connection duct is on the main duct
-          const isPoint1Antenna = antennas.some(a => a.position[0] === point1[0] && a.position[1] === point1[1]);
-          const isPoint2Antenna = antennas.some(a => a.position[0] === point2[0] && a.position[1] === point2[1]);
-
-          if (isPoint1Antenna && !isPoint2Antenna) {
-            connectionPointCoord = point2;
-          } else if (!isPoint1Antenna && isPoint2Antenna) {
-            connectionPointCoord = point1;
-          }
-
-          if (connectionPointCoord) {
-            const closestPointOnMainDuct = mainDuctGeometry.getClosestPoint(connectionPointCoord);
-            const distanceToMainDuct = Math.sqrt(
-              Math.pow(closestPointOnMainDuct[0] - connectionPointCoord[0], 2) +
-              Math.pow(closestPointOnMainDuct[1] - connectionPointCoord[1], 2)
-            );
-
-            if (distanceToMainDuct < tolerance) {
-              connectedAntennaCount++;
-            }
-          }
-        });
-        
-        // Apply the length for the main duct based on connected antennas
-        totalLength += mainDuctLength * connectedAntennaCount;
-      }
+    // 1. Add lengths of all connection cable ducts
+    cableDucts.filter(duct => duct.type === 'connection').forEach(connDuct => {
+        totalLength += calculateCableDuctLength(connDuct.path);
     });
 
-    // Length for connection cable ducts
-    connectionDucts.forEach(connDuct => {
-      const connDuctLength = calculateCableDuctLength(connDuct.path);
-      totalLength += connDuctLength;
+    // 2. For each antenna, calculate the length along the main duct to the nearest switch
+    antennas.forEach(antenna => {
+        // Find the connection duct for this antenna
+        const antennaConnectionDuct = cableDucts.find(duct =>
+            duct.type === 'connection' &&
+            (
+                (duct.path[0][0] === antenna.position[0] && duct.path[0][1] === antenna.position[1]) ||
+                (duct.path[1][0] === antenna.position[0] && duct.path[1][1] === antenna.position[1])
+            )
+        );
+
+        if (antennaConnectionDuct) {
+            // Determine the point on the main duct where the connection duct ends
+            const pointOnMainDuct = (antennaConnectionDuct.path[0][0] === antenna.position[0] && antennaConnectionDuct.path[0][1] === antenna.position[1])
+                ? antennaConnectionDuct.path[1]
+                : antennaConnectionDuct.path[0];
+
+            // Find the main duct that contains this connection point
+            const connectedMainDuct = cableDucts.find(duct =>
+                duct.type === 'main' &&
+                new LineString(duct.path).getClosestPoint(pointOnMainDuct).every((val, i) => Math.abs(val - pointOnMainDuct[i]) < 0.01) // Check if point is on the line with tolerance
+            );
+
+            if (connectedMainDuct) {
+                // Find the nearest switch's projection onto this main duct
+                let nearestSwitchPointOnMainDuct: Coordinate | null = null;
+                let minSwitchDistanceToDuct = Infinity;
+
+                const mainDuctGeometry = new LineString(connectedMainDuct.path);
+
+                switches.forEach(s => {
+                    const switchPos = s.position;
+                    const closestPointOnMainDuctToSwitch = mainDuctGeometry.getClosestPoint(switchPos);
+                    const distance = Math.sqrt(
+                        Math.pow(switchPos[0] - closestPointOnMainDuctToSwitch[0], 2) +
+                        Math.pow(switchPos[1] - closestPointOnMainDuctToSwitch[1], 2)
+                    );
+
+                    if (distance < minSwitchDistanceToDuct) {
+                        minSwitchDistanceToDuct = distance;
+                        nearestSwitchPointOnMainDuct = closestPointOnMainDuctToSwitch;
+                    }
+                });
+
+                if (nearestSwitchPointOnMainDuct) {
+                    // Calculate length along the main duct from pointOnMainDuct to nearestSwitchPointOnMainDuct
+                    const segmentLength = calculateLengthBetweenPointsOnLineString(
+                        mainDuctGeometry,
+                        pointOnMainDuct,
+                        nearestSwitchPointOnMainDuct
+                    );
+                    totalLength += segmentLength;
+                }
+            }
+        }
     });
 
     return totalLength;
   }, [cableDucts, switches, antennas]);
-
-  // Calculate total cable duct cost based on new logic
-  const totalCableDuctCost = React.useMemo(() => {
-    return conditionalCableDuctLength * cablePricePerMeter;
-  }, [conditionalCableDuctLength, cablePricePerMeter]);
 
   const totalMapArea = mapWidthMeters * mapHeightMeters;
   const totalBarrierArea = barriers.reduce((sum, coords) => {
