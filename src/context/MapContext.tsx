@@ -89,7 +89,8 @@ type MapHistoryAction =
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'RESET_MAP_DATA' }
-  | { type: 'LOAD_CONFIGURATION'; payload: SavedMapConfig };
+  | { type: 'LOAD_CONFIGURATION'; payload: SavedMapConfig }
+  | { type: 'DELETE_CABLE_DUCT_SEGMENT'; payload: { id: string; segmentIndex: number } }; // Новое действие для удаления отрезка
 
 const MAX_HISTORY_SIZE = 20; // Максимальное количество состояний в истории
 
@@ -194,6 +195,47 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
         historyIndex: 0,
       };
     }
+    case 'DELETE_CABLE_DUCT_SEGMENT': {
+      const { id, segmentIndex } = action.payload;
+      const updatedCableDucts = state.current.cableDucts.flatMap(duct => {
+        if (duct.id === id) {
+          const path = [...duct.path];
+          if (path.length < 2) {
+            // Should not happen for a valid line, but handle defensively
+            return []; // Remove this duct if it has no segments
+          }
+
+          if (path.length === 2) {
+            // Only one segment, remove the whole duct
+            return [];
+          }
+
+          // Split the path
+          const newDucts: CableDuct[] = [];
+          const firstPart = path.slice(0, segmentIndex + 1);
+          const secondPart = path.slice(segmentIndex + 1);
+
+          if (firstPart.length >= 2) {
+            newDucts.push({
+              id: `${duct.id}-part1-${Date.now()}`, // Generate new ID for part
+              path: firstPart,
+              type: duct.type,
+            });
+          }
+          if (secondPart.length >= 2) {
+            newDucts.push({
+              id: `${duct.id}-part2-${Date.now() + 1}`, // Generate new ID for part
+              path: secondPart,
+              type: duct.type,
+            });
+          }
+          return newDucts; // Replace original duct with new parts (or nothing)
+        }
+        return [duct]; // Keep other ducts as is
+      });
+
+      return mapHistoryReducer(state, { type: 'UPDATE_STATE', payload: { cableDucts: updatedCableDucts } });
+    }
     default:
       return state;
   }
@@ -233,6 +275,7 @@ interface MapActions {
   redo: () => void;
   canUndo: boolean; // Добавлено для управления состоянием кнопки
   canRedo: boolean; // Добавлено для управления состоянием кнопки
+  deleteCableDuctSegment: (id: string, segmentIndex: number) => void; // Новое действие
 }
 
 const MapContext = createContext<{ state: MapState; actions: MapActions } | undefined>(undefined);
@@ -266,6 +309,7 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     redo: () => dispatch({ type: 'REDO' }),
     canUndo: historyState.historyIndex > 0,
     canRedo: historyState.historyIndex < historyState.history.length - 1,
+    deleteCableDuctSegment: (id, segmentIndex) => dispatch({ type: 'DELETE_CABLE_DUCT_SEGMENT', payload: { id, segmentIndex } }),
   }), [historyState]); // Зависимости для useMemo
 
   return (
