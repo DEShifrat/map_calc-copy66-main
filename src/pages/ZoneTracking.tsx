@@ -291,15 +291,16 @@ const ZoneTracking: React.FC = () => {
             <div className="md:col-span-1 space-y-4">
               <div className="p-4 border rounded-md">
                 <h3 className="text-lg font-semibold mb-2">Инструменты рисования и редактирования:</h3>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         onClick={() => handleInteractionChange('drawBarrier')}
                         variant={activeInteraction === 'drawBarrier' ? 'default' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Square className="h-4 w-4" />
+                        <span>Нарисовать барьер</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -311,9 +312,10 @@ const ZoneTracking: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('deleteBarrier')}
                         variant={activeInteraction === 'deleteBarrier' ? 'destructive' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Trash2 className="h-4 w-4" />
+                        <span>Удалить барьер</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -325,9 +327,10 @@ const ZoneTracking: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('drawZone')}
                         variant={activeInteraction === 'drawZone' ? 'default' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Target className="h-4 w-4" />
+                        <span>Нарисовать зону</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -339,9 +342,10 @@ const ZoneTracking: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('deleteZone')}
                         variant={activeInteraction === 'deleteZone' ? 'destructive' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Trash2 className="h-4 w-4" />
+                        <span>Удалить зону</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -353,9 +357,10 @@ const ZoneTracking: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('manualSwitch')}
                         variant={activeInteraction === 'manualSwitch' ? 'default' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Router className="h-4 w-4" />
+                        <span>Добавить коммутатор</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -367,9 +372,10 @@ const ZoneTracking: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('editSwitch')}
                         variant={activeInteraction === 'editSwitch' ? 'default' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Pencil className="h-4 w-4" />
+                        <span>Редактировать коммутатор</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -381,9 +387,10 @@ const ZoneTracking: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('deleteSwitch')}
                         variant={activeInteraction === 'deleteSwitch' ? 'destructive' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Trash2 className="h-4 w-4" />
+                        <span>Удалить коммутатор</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -395,9 +402,10 @@ const ZoneTracking: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('drawCableDuct')}
                         variant={activeInteraction === 'drawCableDuct' ? 'default' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Cable className="h-4 w-4" />
+                        <span>Нарисовать кабель-канал</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -409,9 +417,10 @@ const ZoneTracking: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('editCableDuct')}
                         variant={activeInteraction === 'editCableDuct' ? 'default' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Pencil className="h-4 w-4" />
+                        <span>Редактировать кабель-канал</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -423,9 +432,10 @@ const ZoneTracking: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('deleteCableDuct')}
                         variant={activeInteraction === 'deleteCableDuct' ? 'destructive' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Trash2 className="h-4 w-4" />
+                        <span>Удалить кабель-канал</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -437,9 +447,10 @@ const ZoneTracking: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('rescale')}
                         variant={activeInteraction === 'rescale' ? 'default' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Ruler className="h-4 w-4" />
+                        <span>Ремасштабировать карту</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -448,8 +459,9 @@ const ZoneTracking: React.FC = () => {
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button onClick={() => setActiveInteraction(null)} variant="secondary" size="icon">
+                      <Button onClick={() => setActiveInteraction(null)} variant="secondary" className="flex items-center justify-start gap-2 px-4 h-10">
                         <X className="h-4 w-4" />
+                        <span>Отменить действие</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -460,8 +472,9 @@ const ZoneTracking: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2 mt-4">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button onClick={actions.undo} disabled={!actions.canUndo} variant="outline" size="icon">
+                      <Button onClick={actions.undo} disabled={!actions.canUndo} variant="outline" className="flex items-center justify-start gap-2 px-4 h-10">
                         <Undo2 className="h-4 w-4" />
+                        <span>Отменить</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -470,8 +483,9 @@ const ZoneTracking: React.FC = () => {
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button onClick={actions.redo} disabled={!actions.canRedo} variant="outline" size="icon">
+                      <Button onClick={actions.redo} disabled={!actions.canRedo} variant="outline" className="flex items-center justify-start gap-2 px-4 h-10">
                         <Redo2 className="h-4 w-4" />
+                        <span>Вернуть</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>

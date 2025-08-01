@@ -267,15 +267,16 @@ const BLEBeacons: React.FC = () => {
             <div className="md:col-span-1 space-y-4">
               <div className="p-4 border rounded-md">
                 <h3 className="text-lg font-semibold mb-2">Инструменты рисования и редактирования:</h3>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         onClick={() => handleInteractionChange('manualBeacon')}
                         variant={activeInteraction === 'manualBeacon' ? 'default' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <MapPin className="h-4 w-4" />
+                        <span>Добавить маяк</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -287,9 +288,10 @@ const BLEBeacons: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('editBeacon')}
                         variant={activeInteraction === 'editBeacon' ? 'default' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Pencil className="h-4 w-4" />
+                        <span>Редактировать маяк</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -301,9 +303,10 @@ const BLEBeacons: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('deleteBeacon')}
                         variant={activeInteraction === 'deleteBeacon' ? 'destructive' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Trash2 className="h-4 w-4" />
+                        <span>Удалить маяк</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -315,9 +318,10 @@ const BLEBeacons: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('drawBarrier')}
                         variant={activeInteraction === 'drawBarrier' ? 'default' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Square className="h-4 w-4" />
+                        <span>Нарисовать барьер</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -329,9 +333,10 @@ const BLEBeacons: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('deleteBarrier')}
                         variant={activeInteraction === 'deleteBarrier' ? 'destructive' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Trash2 className="h-4 w-4" />
+                        <span>Удалить барьер</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -343,9 +348,10 @@ const BLEBeacons: React.FC = () => {
                       <Button
                         onClick={() => handleInteractionChange('rescale')}
                         variant={activeInteraction === 'rescale' ? 'default' : 'outline'}
-                        size="icon"
+                        className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Ruler className="h-4 w-4" />
+                        <span>Ремасштабировать карту</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -354,8 +360,9 @@ const BLEBeacons: React.FC = () => {
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button onClick={() => setActiveInteraction(null)} variant="secondary" size="icon">
+                      <Button onClick={() => setActiveInteraction(null)} variant="secondary" className="flex items-center justify-start gap-2 px-4 h-10">
                         <X className="h-4 w-4" />
+                        <span>Отменить действие</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -366,8 +373,9 @@ const BLEBeacons: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2 mt-4">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button onClick={actions.undo} disabled={!actions.canUndo} variant="outline" size="icon">
+                      <Button onClick={actions.undo} disabled={!actions.canUndo} variant="outline" className="flex items-center justify-start gap-2 px-4 h-10">
                         <Undo2 className="h-4 w-4" />
+                        <span>Отменить</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -376,8 +384,9 @@ const BLEBeacons: React.FC = () => {
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button onClick={actions.redo} disabled={!actions.canRedo} variant="outline" size="icon">
+                      <Button onClick={actions.redo} disabled={!actions.canRedo} variant="outline" className="flex items-center justify-start gap-2 px-4 h-10">
                         <Redo2 className="h-4 w-4" />
+                        <span>Вернуть</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
