@@ -39,6 +39,7 @@ const ZoneTracking: React.FC = () => {
   const [activeInteraction, setActiveInteraction] = useState<MapInteractionType>(null);
   const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState(false);
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
+  const [zoneSizeInput, setZoneSizeInput] = useState<number>(10); // New state for zone size
 
   const handleInteractionChange = (interaction: MapInteractionType) => {
     setActiveInteraction(prev => (prev === interaction ? null : interaction));
@@ -168,6 +169,42 @@ const ZoneTracking: React.FC = () => {
       showError('Не удалось сохранить конфигурацию карты в файл.');
     }
   }, [mapImageSrc, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, cablePricePerMeter, beaconPrice, antennaPrice]);
+
+  const handleAutoCalculateZones = () => {
+    if (zoneSizeInput <= 0) {
+      showError('Размер зоны должен быть положительным числом.');
+      return;
+    }
+
+    const newZones: typeof zones = [];
+    let currentId = zones.length > 0 ? Math.max(...zones.map(z => parseInt(z.id.split('-')[1]))) + 1 : 1;
+
+    for (let y = 0; y < mapHeightMeters; y += zoneSizeInput) {
+      for (let x = 0; x < mapWidthMeters; x += zoneSizeInput) {
+        const x1 = x;
+        const y1 = y;
+        const x2 = Math.min(x + zoneSizeInput, mapWidthMeters);
+        const y2 = Math.min(y + zoneSizeInput, mapHeightMeters);
+
+        const polygon: Coordinate[][][] = [[
+          [x1, y1],
+          [x2, y1],
+          [x2, y2],
+          [x1, y2],
+          [x1, y1] // Close the polygon
+        ]];
+
+        newZones.push({
+          id: `zone-${currentId++}`,
+          polygon: polygon,
+          beaconCount: 0, // Default to 0, can be updated later
+        });
+      }
+    }
+    actions.setZones(newZones);
+    showSuccess(`Автоматически создано ${newZones.length} зон.`);
+    setActiveInteraction(null); // Deactivate any active interaction
+  };
 
   if (!mapImageSrc) {
     return (
@@ -302,6 +339,24 @@ const ZoneTracking: React.FC = () => {
                     Отменить действие
                   </Button>
                 </div>
+              </div>
+
+              <div className="p-4 border rounded-md">
+                <h3 className="text-lg font-semibold mb-2">Авторасчет зон:</h3>
+                <div className="space-y-2 mb-4">
+                  <Label htmlFor="zoneSize">Размер зоны (м)</Label>
+                  <Input
+                    id="zoneSize"
+                    type="number"
+                    value={zoneSizeInput}
+                    onChange={(e) => setZoneSizeInput(Number(e.target.value))}
+                    min="1"
+                    step="1"
+                  />
+                </div>
+                <Button onClick={handleAutoCalculateZones} className="w-full">
+                  Авторасчет зон
+                </Button>
               </div>
 
               <div className="p-4 border rounded-md">

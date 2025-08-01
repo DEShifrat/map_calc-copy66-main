@@ -39,6 +39,7 @@ const BLEBeacons: React.FC = () => {
   const [activeInteraction, setActiveInteraction] = useState<MapInteractionType>(null);
   const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState(false);
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
+  const [beaconStepInput, setBeaconStepInput] = useState<number>(5); // New state for beacon step
 
   const handleInteractionChange = (interaction: MapInteractionType) => {
     setActiveInteraction(prev => (prev === interaction ? null : interaction));
@@ -158,6 +159,29 @@ const BLEBeacons: React.FC = () => {
     }
   }, [mapImageSrc, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, cablePricePerMeter, beaconPrice, antennaPrice]);
 
+  const handleAutoCalculateBeacons = () => {
+    if (beaconStepInput <= 0) {
+      showError('Шаг маяков должен быть положительным числом.');
+      return;
+    }
+
+    const newBeacons: typeof beacons = [];
+    let currentId = beacons.length > 0 ? Math.max(...beacons.map(b => parseInt(b.id.split('-')[1]))) + 1 : 1;
+
+    for (let y = beaconStepInput / 2; y < mapHeightMeters; y += beaconStepInput) {
+      for (let x = beaconStepInput / 2; x < mapWidthMeters; x += beaconStepInput) {
+        newBeacons.push({
+          id: `beacon-${currentId++}`,
+          position: [x, y],
+          price: beaconPrice, // Use current beacon price from context
+        });
+      }
+    }
+    actions.setBeacons(newBeacons);
+    showSuccess(`Автоматически создано ${newBeacons.length} маяков.`);
+    setActiveInteraction(null);
+  };
+
   if (!mapImageSrc) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-200 dark:bg-gray-900 p-4">
@@ -261,6 +285,24 @@ const BLEBeacons: React.FC = () => {
                     Отменить действие
                   </Button>
                 </div>
+              </div>
+
+              <div className="p-4 border rounded-md">
+                <h3 className="text-lg font-semibold mb-2">Авторасчет маяков:</h3>
+                <div className="space-y-2 mb-4">
+                  <Label htmlFor="beaconStep">Шаг размещения маяков (м)</Label>
+                  <Input
+                    id="beaconStep"
+                    type="number"
+                    value={beaconStepInput}
+                    onChange={(e) => setBeaconStepInput(Number(e.target.value))}
+                    min="1"
+                    step="1"
+                  />
+                </div>
+                <Button onClick={handleAutoCalculateBeacons} className="w-full">
+                  Авторасчет маяков
+                </Button>
               </div>
 
               <div className="p-4 border rounded-md">

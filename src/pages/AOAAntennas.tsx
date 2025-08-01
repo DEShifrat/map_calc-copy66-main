@@ -39,6 +39,10 @@ const AOAAntennas: React.FC = () => {
   const [activeInteraction, setActiveInteraction] = useState<MapInteractionType>(null);
   const [isRescaleDialogOpen, setIsRescaleDialogOpen] = useState(false);
   const [drawnLengthForRescale, setDrawnLengthForRescale] = useState(0);
+  const [antennaPlacementStepInput, setAntennaPlacementStepInput] = useState<number>(15); // New state for antenna step
+  const [defaultAntennaHeightInput, setDefaultAntennaHeightInput] = useState<number>(3); // New state for default height
+  const [defaultAntennaAngleInput, setDefaultAntennaAngleInput] = useState<number>(0); // New state for default angle
+  const [defaultAntennaRangeInput, setDefaultAntennaRangeInput] = useState<number>(20); // New state for default range
 
   const handleInteractionChange = (interaction: MapInteractionType) => {
     setActiveInteraction(prev => (prev === interaction ? null : interaction));
@@ -162,6 +166,40 @@ const AOAAntennas: React.FC = () => {
       showError('Не удалось сохранить конфигурацию карты в файл.');
     }
   }, [mapImageSrc, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, cablePricePerMeter, beaconPrice, antennaPrice]);
+
+  const handleAutoCalculateAntennas = () => {
+    if (antennaPlacementStepInput <= 0) {
+      showError('Шаг размещения антенн должен быть положительным числом.');
+      return;
+    }
+    if (defaultAntennaHeightInput <= 0) {
+      showError('Высота антенны должна быть положительным числом.');
+      return;
+    }
+    if (defaultAntennaRangeInput <= 0) {
+      showError('Радиус антенны должен быть положительным числом.');
+      return;
+    }
+
+    const newAntennas: typeof antennas = [];
+    let currentId = antennas.length > 0 ? Math.max(...antennas.map(a => parseInt(a.id.split('-')[1]))) + 1 : 1;
+
+    for (let y = antennaPlacementStepInput / 2; y < mapHeightMeters; y += antennaPlacementStepInput) {
+      for (let x = antennaPlacementStepInput / 2; x < mapWidthMeters; x += antennaPlacementStepInput) {
+        newAntennas.push({
+          id: `antenna-${currentId++}`,
+          position: [x, y],
+          height: defaultAntennaHeightInput,
+          angle: defaultAntennaAngleInput,
+          range: defaultAntennaRangeInput,
+          price: antennaPrice, // Use current antenna price from context
+        });
+      }
+    }
+    actions.setAntennas(newAntennas);
+    showSuccess(`Автоматически создано ${newAntennas.length} антенн.`);
+    setActiveInteraction(null);
+  };
 
   if (!mapImageSrc) {
     return (
@@ -302,6 +340,60 @@ const AOAAntennas: React.FC = () => {
                     Отменить действие
                   </Button>
                 </div>
+              </div>
+
+              <div className="p-4 border rounded-md">
+                <h3 className="text-lg font-semibold mb-2">Авторасчет антенн:</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="antennaPlacementStep">Шаг размещения (м)</Label>
+                    <Input
+                      id="antennaPlacementStep"
+                      type="number"
+                      value={antennaPlacementStepInput}
+                      onChange={(e) => setAntennaPlacementStepInput(Number(e.target.value))}
+                      min="1"
+                      step="1"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="defaultAntennaHeight">Высота (м)</Label>
+                    <Input
+                      id="defaultAntennaHeight"
+                      type="number"
+                      value={defaultAntennaHeightInput}
+                      onChange={(e) => setDefaultAntennaHeightInput(Number(e.target.value))}
+                      min="0.1"
+                      step="0.1"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="defaultAntennaAngle">Угол (градусы)</Label>
+                    <Input
+                      id="defaultAntennaAngle"
+                      type="number"
+                      value={defaultAntennaAngleInput}
+                      onChange={(e) => setDefaultAntennaAngleInput(Number(e.target.value))}
+                      min="0"
+                      max="360"
+                      step="1"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="defaultAntennaRange">Радиус (м)</Label>
+                    <Input
+                      id="defaultAntennaRange"
+                      type="number"
+                      value={defaultAntennaRangeInput}
+                      onChange={(e) => setDefaultAntennaRangeInput(Number(e.target.value))}
+                      min="1"
+                      step="1"
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleAutoCalculateAntennas} className="w-full">
+                  Авторасчет антенн
+                </Button>
               </div>
 
               <div className="p-4 border rounded-md">
