@@ -6,7 +6,7 @@ import { useMap } from '@/context/MapContext';
 import MapCore, { MapInteractionType } from '@/components/MapCore';
 import MapControls from '@/components/MapControls';
 import RescaleDialog from '@/components/RescaleDialog';
-import { Input } from '@/components/ui/input';
+import { Input }
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
@@ -110,16 +110,19 @@ const AOAAntennas: React.FC = () => {
     setActiveInteraction(null); // Deactivate interaction after modifying
   }, [actions, antennas, switches, cableDucts]);
 
-  const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'switch' | 'cableDuct', id: string) => {
+  const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string) => {
     if (type === 'antenna') {
       actions.setAntennas(antennas.filter(a => a.id !== id));
+    } else if (type === 'barrier') {
+      // Filter barriers by comparing their stringified coordinates (ID)
+      actions.setBarriers(barriers.filter(b => JSON.stringify(b) !== id));
     } else if (type === 'switch') {
       actions.setSwitches(switches.filter(s => s.id !== id));
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.filter(c => c.id !== id));
     }
     setActiveInteraction(null); // Deactivate interaction after deleting
-  }, [actions, antennas, switches, cableDucts]);
+  }, [actions, antennas, barriers, switches, cableDucts]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {
     setDrawnLengthForRescale(drawnLength);

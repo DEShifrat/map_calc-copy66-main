@@ -72,20 +72,23 @@ const ZoneTracking: React.FC = () => {
     setActiveInteraction(null); // Deactivate interaction after modifying
   }, [actions, beacons, antennas, switches, cableDucts]);
 
-  const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'switch' | 'cableDuct', id: string) => {
+  const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.filter(b => b.id !== id));
     } else if (type === 'antenna') {
       actions.setAntennas(antennas.filter(a => a.id !== id));
     } else if (type === 'zone') {
       actions.setZones(zones.filter(z => z.id !== id));
+    } else if (type === 'barrier') {
+      // Filter barriers by comparing their stringified coordinates (ID)
+      actions.setBarriers(barriers.filter(b => JSON.stringify(b) !== id));
     } else if (type === 'switch') {
       actions.setSwitches(switches.filter(s => s.id !== id));
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.filter(c => c.id !== id));
     }
     setActiveInteraction(null); // Deactivate interaction after deleting
-  }, [actions, beacons, antennas, zones, switches, cableDucts]);
+  }, [actions, beacons, antennas, zones, barriers, switches, cableDucts]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {
     setDrawnLengthForRescale(drawnLength);

@@ -111,6 +111,16 @@ const zoneHoverStyle = new Style({
     color: 'rgba(255, 165, 0, 0.2)',
   }),
 });
+
+const barrierHoverStyle = new Style({
+  stroke: new Stroke({
+    color: 'orange',
+    width: 3,
+  }),
+  fill: new Fill({
+    color: 'rgba(255, 165, 0, 0.2)',
+  }),
+});
 // --- Конец стилей, определенных за пределами компонента ---
 
 // Интерфейсы для данных карты (повторяются из MapContext для ясности)
@@ -162,6 +172,7 @@ export type MapInteractionType =
   | 'deleteBeacon'
   | 'deleteAntenna'
   | 'deleteZone'
+  | 'deleteBarrier' // Added deleteBarrier
   | 'deleteSwitch'
   | 'deleteCableDuct'
   | 'rescale'
@@ -188,7 +199,7 @@ interface MapCoreProps {
   activeInteraction: MapInteractionType;
   onFeatureAdd: (type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => void;
   onFeatureModify: (type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => void;
-  onFeatureDelete: (type: 'beacon' | 'antenna' | 'zone' | 'switch' | 'cableDuct', id: string) => void;
+  onFeatureDelete: (type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string) => void; // Updated onFeatureDelete
   onRescaleDrawEnd: (drawnLengthMeters: number) => void;
   beaconPrice: number; // Passed for new beacon creation
   antennaPrice: number; // Passed for new antenna creation
@@ -244,6 +255,12 @@ const MapCore: React.FC<MapCoreProps> = ({
 
   const rescaleDrawSource = useRef(new VectorSource({ features: [] }));
   const rescaleDrawLayer = useRef(new VectorLayer({ source: rescaleDrawSource.current }));
+
+  // Refs for managing OpenLayers interactions
+  const drawInteractionRef = useRef<Draw | null>(null);
+  const modifyInteractionRef = useRef<Modify | null>(null);
+  const snapInteractionRef = useRef<Snap | null>(null);
+  const clickListenerRef = useRef<((event: any) => void) | null>(null);
 
   const cableDuctLineStyle = useMemo(() => new Style({
     stroke: new Stroke({
@@ -400,10 +417,16 @@ const MapCore: React.FC<MapCoreProps> = ({
 
   useEffect(() => {
     if (mapInstance) {
-      barrierVectorLayer.current.setStyle(barrierStyle);
+      barrierVectorLayer.current.setStyle((feature) => {
+        const styles = [barrierStyle];
+        if (feature.get('id') === hoveredFeatureId && (activeInteraction === 'deleteBarrier')) {
+          styles.push(barrierHoverStyle);
+        }
+        return styles;
+      });
       barrierVectorLayer.current.changed();
     }
-  }, [mapInstance]);
+  }, [mapInstance, hoveredFeatureId, activeInteraction]);
 
   useEffect(() => {
     if (mapInstance) {
@@ -493,8 +516,10 @@ const MapCore: React.FC<MapCoreProps> = ({
   useEffect(() => {
     barrierVectorSource.current.clear();
     barriers.forEach(coords => {
+      // Assign a unique ID to each barrier feature for deletion
+      const id = JSON.stringify(coords); // Using stringified coords as ID
       const polygon = new Polygon(coords);
-      const feature = new Feature({ geometry: polygon });
+      const feature = new Feature({ geometry: polygon, id: id });
       barrierVectorSource.current.addFeature(feature);
     });
   }, [barriers]);
@@ -538,40 +563,55 @@ const MapCore: React.FC<MapCoreProps> = ({
   useEffect(() => {
     if (!mapInstance) return;
 
-    let currentInteraction: Interaction | null = null;
-    let currentClickListener: ((event: any) => void) | null = null;
-    let currentSnapInteraction: Snap | null = null;
-
-    rescaleDrawSource.current.clear();
-
-    // Remove existing interactions before adding new ones
-    mapInstance.getInteractions().forEach(interaction => {
-      if (interaction instanceof Draw || interaction instanceof Modify || interaction instanceof Snap) {
-        mapInstance.removeInteraction(interaction);
+    // Cleanup function to remove all interactions
+    const cleanupInteractions = () => {
+      if (drawInteractionRef.current) {
+        mapInstance.removeInteraction(drawInteractionRef.current);
+        drawInteractionRef.current = null;
       }
-    });
-    mapInstance.un('click', currentClickListener || (() => {})); // Remove previous click listener
+      if (modifyInteractionRef.current) {
+        mapInstance.removeInteraction(modifyInteractionRef.current);
+        modifyInteractionRef.current = null;
+      }
+      if (snapInteractionRef.current) {
+        mapInstance.removeInteraction(snapInteractionRef.current);
+        snapInteractionRef.current = null;
+      }
+      if (clickListenerRef.current) {
+        mapInstance.un('click', clickListenerRef.current);
+        clickListenerRef.current = null;
+      }
+      rescaleDrawSource.current.clear(); // Clear any drawing for rescale
+    };
+
+    // Call cleanup before setting new interactions
+    cleanupInteractions();
+
+    let newInteraction: Interaction | null = null;
+    let newClickListener: ((event: any) => void) | null = null;
+    let newSnapInteraction: Snap | null = null;
 
     switch (activeInteraction) {
       case 'drawBarrier':
-        currentInteraction = new Draw({
+        newInteraction = new Draw({
           source: barrierVectorSource.current,
           type: 'Polygon',
           style: sketchStyle,
         });
-        (currentInteraction as Draw).on('drawend', (event: any) => {
-          onFeatureAdd('barrier', event.feature.getGeometry()?.getCoordinates() as Coordinate[][][]);
+        (newInteraction as Draw).on('drawend', (event: any) => {
+          const coords = event.feature.getGeometry()?.getCoordinates() as Coordinate[][][];
+          onFeatureAdd('barrier', coords);
           showSuccess('Барьер добавлен!');
         });
-        currentSnapInteraction = new Snap({ source: barrierVectorSource.current });
+        newSnapInteraction = new Snap({ source: barrierVectorSource.current });
         break;
       case 'drawZone':
-        currentInteraction = new Draw({
+        newInteraction = new Draw({
           source: zoneVectorSource.current,
           type: 'Polygon',
           style: sketchStyle,
         });
-        (currentInteraction as Draw).on('drawend', (event: any) => {
+        (newInteraction as Draw).on('drawend', (event: any) => {
           onFeatureAdd('zone', {
             id: `zone-${Date.now()}`,
             polygon: event.feature.getGeometry()?.getCoordinates() as Coordinate[][][],
@@ -579,15 +619,15 @@ const MapCore: React.FC<MapCoreProps> = ({
           });
           showSuccess('Зона добавлена вручную!');
         });
-        currentSnapInteraction = new Snap({ source: zoneVectorSource.current });
+        newSnapInteraction = new Snap({ source: zoneVectorSource.current });
         break;
       case 'drawCableDuct':
-        currentInteraction = new Draw({
+        newInteraction = new Draw({
           source: cableDuctVectorSource.current,
           type: 'LineString',
           style: sketchStyle,
         });
-        (currentInteraction as Draw).on('drawend', (event: any) => {
+        (newInteraction as Draw).on('drawend', (event: any) => {
           onFeatureAdd('cableDuct', {
             id: `cableDuct-${Date.now()}`,
             path: event.feature.getGeometry()?.getCoordinates() as Coordinate[],
@@ -595,14 +635,14 @@ const MapCore: React.FC<MapCoreProps> = ({
           });
           showSuccess('Кабель-канал добавлен!');
         });
-        currentSnapInteraction = new Snap({ source: cableDuctVectorSource.current });
+        newSnapInteraction = new Snap({ source: cableDuctVectorSource.current });
         break;
       case 'editBeacon':
-        currentInteraction = new Modify({
+        newInteraction = new Modify({
           source: beaconVectorSource.current,
           style: sketchStyle,
         });
-        (currentInteraction as Modify).on('modifyend', (event: any) => {
+        (newInteraction as Modify).on('modifyend', (event: any) => {
           event.features.forEach((feature: Feature) => {
             const id = feature.get('id');
             const geometry = feature.getGeometry();
@@ -612,14 +652,14 @@ const MapCore: React.FC<MapCoreProps> = ({
           });
           showSuccess('Позиция маяка обновлена!');
         });
-        currentSnapInteraction = new Snap({ source: beaconVectorSource.current });
+        newSnapInteraction = new Snap({ source: beaconVectorSource.current });
         break;
       case 'editAntenna':
-        currentInteraction = new Modify({
+        newInteraction = new Modify({
           source: antennaVectorSource.current,
           style: sketchStyle,
         });
-        (currentInteraction as Modify).on('modifyend', (event: any) => {
+        (newInteraction as Modify).on('modifyend', (event: any) => {
           event.features.forEach((feature: Feature) => {
             const id = feature.get('id');
             const geometry = feature.getGeometry();
@@ -629,14 +669,14 @@ const MapCore: React.FC<MapCoreProps> = ({
           });
           showSuccess('Позиция антенны обновлена!');
         });
-        currentSnapInteraction = new Snap({ source: antennaVectorSource.current });
+        newSnapInteraction = new Snap({ source: antennaVectorSource.current });
         break;
       case 'editSwitch':
-        currentInteraction = new Modify({
+        newInteraction = new Modify({
           source: switchVectorSource.current,
           style: sketchStyle,
         });
-        (currentInteraction as Modify).on('modifyend', (event: any) => {
+        (newInteraction as Modify).on('modifyend', (event: any) => {
           event.features.forEach((feature: Feature) => {
             const id = feature.get('id');
             const geometry = feature.getGeometry();
@@ -646,14 +686,14 @@ const MapCore: React.FC<MapCoreProps> = ({
           });
           showSuccess('Позиция коммутатора обновлена!');
         });
-        currentSnapInteraction = new Snap({ source: switchVectorSource.current });
+        newSnapInteraction = new Snap({ source: switchVectorSource.current });
         break;
       case 'editCableDuct':
-        currentInteraction = new Modify({
+        newInteraction = new Modify({
           source: cableDuctVectorSource.current,
           style: sketchStyle,
         });
-        (currentInteraction as Modify).on('modifyend', (event: any) => {
+        (newInteraction as Modify).on('modifyend', (event: any) => {
           event.features.forEach((feature: Feature) => {
             const id = feature.get('id');
             const geometry = feature.getGeometry();
@@ -663,16 +703,16 @@ const MapCore: React.FC<MapCoreProps> = ({
           });
           showSuccess('Кабель-канал обновлен!');
         });
-        currentSnapInteraction = new Snap({ source: cableDuctVectorSource.current });
+        newSnapInteraction = new Snap({ source: cableDuctVectorSource.current });
         break;
       case 'rescale':
-        currentInteraction = new Draw({
+        newInteraction = new Draw({
           source: rescaleDrawSource.current,
           type: 'LineString',
           style: rescaleLineStyle,
           maxPoints: 2,
         });
-        (currentInteraction as Draw).on('drawend', (event: any) => {
+        (newInteraction as Draw).on('drawend', (event: any) => {
           const geometry = event.feature.getGeometry();
           if (geometry instanceof LineString) {
             const coords = geometry.getCoordinates();
@@ -693,9 +733,10 @@ const MapCore: React.FC<MapCoreProps> = ({
       case 'deleteBeacon':
       case 'deleteAntenna':
       case 'deleteZone':
+      case 'deleteBarrier': // Added deleteBarrier case
       case 'deleteSwitch':
       case 'deleteCableDuct':
-        currentClickListener = (event: any) => {
+        newClickListener = (event: any) => {
           const coordinate = event.coordinate;
 
           if (activeInteraction === 'manualBeacon') {
@@ -760,6 +801,19 @@ const MapCore: React.FC<MapCoreProps> = ({
               layerFilter: (layer) => layer === zoneVectorLayer.current,
               hitTolerance: 5,
             });
+          } else if (activeInteraction === 'deleteBarrier') { // Handle barrier deletion
+            mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
+              const featureId = feature.get('id'); // This will be the stringified coords
+              if (featureId && feature.getGeometry()?.getType() === 'Polygon') {
+                onFeatureDelete('barrier', featureId);
+                showSuccess('Барьер удален!');
+                return true;
+              }
+              return false;
+            }, {
+              layerFilter: (layer) => layer === barrierVectorLayer.current,
+              hitTolerance: 5,
+            });
           } else if (activeInteraction === 'deleteSwitch') {
             mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
               const featureId = feature.get('id');
@@ -791,31 +845,21 @@ const MapCore: React.FC<MapCoreProps> = ({
         break;
     }
 
-    if (currentInteraction) {
-      mapInstance.addInteraction(currentInteraction);
+    // Store and add new interactions
+    if (newInteraction) {
+      drawInteractionRef.current = newInteraction as Draw;
+      mapInstance.addInteraction(drawInteractionRef.current);
     }
-    if (currentSnapInteraction) {
-      mapInstance.addInteraction(currentSnapInteraction);
+    if (newSnapInteraction) {
+      snapInteractionRef.current = newSnapInteraction;
+      mapInstance.addInteraction(snapInteractionRef.current);
     }
-    if (currentClickListener) {
-      mapInstance.on('click', currentClickListener);
+    if (newClickListener) {
+      clickListenerRef.current = newClickListener;
+      mapInstance.on('click', clickListenerRef.current);
     }
 
-    return () => {
-      if (mapInstance) {
-        if (currentInteraction) {
-          mapInstance.removeInteraction(currentInteraction);
-        }
-        if (currentSnapInteraction) {
-          mapInstance.removeInteraction(currentSnapInteraction);
-        }
-        if (currentClickListener) {
-          mapInstance.un('click', currentClickListener);
-        }
-      }
-      rescaleDrawSource.current.clear();
-    };
-
+    return cleanupInteractions; // Return cleanup function for useEffect
   }, [
     mapInstance,
     activeInteraction,
@@ -835,7 +879,7 @@ const MapCore: React.FC<MapCoreProps> = ({
 
     const handlePointerMove = (event: any) => {
       let foundFeatureId: string | null = null;
-      const deletionModes = ['deleteBeacon', 'deleteAntenna', 'deleteZone', 'deleteSwitch', 'deleteCableDuct'];
+      const deletionModes = ['deleteBeacon', 'deleteAntenna', 'deleteZone', 'deleteBarrier', 'deleteSwitch', 'deleteCableDuct'];
 
       if (deletionModes.includes(activeInteraction || '')) {
         mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
@@ -846,6 +890,7 @@ const MapCore: React.FC<MapCoreProps> = ({
               (activeInteraction === 'deleteBeacon' && geomType === 'Point' && beacons.some(b => b.id === featureId)) ||
               (activeInteraction === 'deleteAntenna' && geomType === 'Point' && antennas.some(a => a.id === featureId)) ||
               (activeInteraction === 'deleteZone' && geomType === 'Polygon' && zones.some(z => z.id === featureId)) ||
+              (activeInteraction === 'deleteBarrier' && geomType === 'Polygon' && barriers.some(b => JSON.stringify(b) === featureId)) || // Check for barrier ID
               (activeInteraction === 'deleteSwitch' && geomType === 'Point' && switches.some(s => s.id === featureId)) ||
               (activeInteraction === 'deleteCableDuct' && geomType === 'LineString' && cableDucts.some(c => c.id === featureId))
             ) {
@@ -859,6 +904,7 @@ const MapCore: React.FC<MapCoreProps> = ({
             layer === beaconVectorLayer.current ||
             layer === antennaVectorLayer.current ||
             layer === zoneVectorLayer.current ||
+            layer === barrierVectorLayer.current || // Include barrier layer
             layer === switchVectorLayer.current ||
             layer === cableDuctVectorLayer.current,
           hitTolerance: 10,
@@ -875,7 +921,7 @@ const MapCore: React.FC<MapCoreProps> = ({
       mapInstance.un('pointermove', handlePointerMove);
       setHoveredFeatureId(null);
     };
-  }, [mapInstance, activeInteraction, beacons, antennas, zones, switches, cableDucts]);
+  }, [mapInstance, activeInteraction, beacons, antennas, zones, barriers, switches, cableDucts]);
 
   return (
     <div ref={mapRef} className="w-full h-[600px] border rounded-md" />

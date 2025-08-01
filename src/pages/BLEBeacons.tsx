@@ -64,19 +64,15 @@ const BLEBeacons: React.FC = () => {
     setActiveInteraction(null);
   }, [actions, beacons]);
 
-  const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'switch' | 'cableDuct', id: string) => {
+  const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.filter(b => b.id !== id));
     } else if (type === 'barrier') {
-      // MapCore handles barrier deletion visually, we just need to update the state
-      // This part of logic is handled by MapCore's click listener for 'deleteBarrier'
-      // and then it calls onFeatureDelete.
-      // Since barriers don't have explicit IDs in the current state structure,
-      // a more robust deletion would involve finding the barrier by its coordinates
-      // or by the feature object itself. For now, we rely on MapCore's direct deletion.
+      // Filter barriers by comparing their stringified coordinates (ID)
+      actions.setBarriers(barriers.filter(b => JSON.stringify(b) !== id));
     }
     setActiveInteraction(null);
-  }, [actions, beacons]);
+  }, [actions, beacons, barriers]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {
     setDrawnLengthForRescale(drawnLength);
