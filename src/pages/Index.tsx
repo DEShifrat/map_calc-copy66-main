@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { showSuccess, showError } from '@/utils/toast';
-import { useMap } from '@/context/MapContext'; // Импортируем useMap
+import { useMap } from '@/context/MapContext';
+import OnboardingDialog from '@/components/OnboardingDialog'; // Импорт OnboardingDialog
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"; // Импорт Tooltip
 
 // Define the structure for the saved configuration (same as in MapContext.tsx)
 interface SavedMapConfig {
@@ -26,7 +28,7 @@ interface SavedMapConfig {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { actions } = useMap(); // Получаем actions из контекста
+  const { actions } = useMap();
 
   const [mapImageFile, setMapImageFile] = useState<File | null>(null);
   const [mapWidthInput, setMapWidthInput] = useState<number>(100);
@@ -38,7 +40,7 @@ const Index = () => {
       showSuccess('Файл карты выбран.');
     } else {
       setMapImageFile(null);
-      actions.setMapImageSrc(null); // Очищаем src в контексте
+      actions.setMapImageSrc(null);
     }
   };
 
@@ -46,7 +48,7 @@ const Index = () => {
     if (mapImageFile && mapWidthInput > 0 && mapHeightInput > 0) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        actions.resetMapData(); // Сбрасываем все данные карты перед загрузкой новой
+        actions.resetMapData();
         actions.setMapImageSrc(reader.result as string);
         actions.setMapDimensions(mapWidthInput, mapHeightInput);
         showSuccess('Карта загружена и готова к использованию!');
@@ -74,7 +76,7 @@ const Index = () => {
         const content = e.target?.result as string;
         const loadedConfig: SavedMapConfig = JSON.parse(content);
 
-        actions.loadMapConfiguration(loadedConfig); // Загружаем всю конфигурацию через контекст
+        actions.loadMapConfiguration(loadedConfig);
 
         showSuccess('Конфигурация карты загружена из файла!');
         navigate('/technology-selection');
@@ -91,6 +93,17 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-200 dark:bg-gray-900 p-4">
+      <OnboardingDialog
+        title="Добро пожаловать в приложение для планирования карт!"
+        description={
+          <>
+            <p className="mb-2">Это приложение поможет вам создавать и управлять картами для различных технологий отслеживания.</p>
+            <p className="mb-2">Начните с загрузки изображения вашей карты и указания её реальных размеров в метрах.</p>
+            <p>Вы также можете загрузить ранее сохраненную конфигурацию карты из JSON файла.</p>
+          </>
+        }
+        localStorageKey="onboarding_index_page"
+      />
       <Card className="w-full shadow-lg bg-gray-100 dark:bg-gray-900">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">Управление картами и BLE-маяками</CardTitle>
@@ -121,16 +134,30 @@ const Index = () => {
                 min="1"
               />
             </div>
-            <Button onClick={handleLoadMap} className="md:col-span-3">
-              Загрузить карту
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={handleLoadMap} className="md:col-span-3">
+                  Загрузить карту
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Загружает выбранное изображение как карту с указанными размерами.</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           <div className="p-4 border rounded-md flex flex-wrap gap-2 justify-center">
             <h3 className="text-lg font-semibold w-full text-center mb-2">Загрузка файла конфигурации:</h3>
             <div className="space-y-2 flex-grow">
               <Label htmlFor="loadConfigFile" className="sr-only">Загрузить файл конфигурации</Label>
-              <Input id="loadConfigFile" type="file" accept=".json" onChange={handleLoadFile} className="w-full" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Input id="loadConfigFile" type="file" accept=".json" onChange={handleLoadFile} className="w-full" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Загружает ранее сохраненную конфигурацию карты из JSON файла.</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardContent>

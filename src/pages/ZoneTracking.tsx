@@ -15,6 +15,7 @@ import {
   Square, Trash2, Target, Router, Pencil, Cable, Ruler, X, Undo2, Redo2
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import OnboardingDialog from '@/components/OnboardingDialog'; // Импорт OnboardingDialog
 
 const ZoneTracking: React.FC = () => {
   const { state, actions } = useMap();
@@ -197,7 +198,7 @@ const ZoneTracking: React.FC = () => {
         const x2 = Math.min(x + zoneSizeInput, mapWidthMeters);
         const y2 = Math.min(y + zoneSizeInput, mapHeightMeters);
 
-        const polygonCoords: Coordinate[] = [ // Изменено с Coordinate[][] на Coordinate[]
+        const polygonCoords: Coordinate[] = [
           [x1, y1],
           [x2, y1],
           [x2, y2],
@@ -205,12 +206,12 @@ const ZoneTracking: React.FC = () => {
           [x1, y1] // Close the polygon
         ];
 
-        const olPolygon = new Polygon([polygonCoords]); // Передаем [Coordinate[]]
+        const olPolygon = new Polygon([polygonCoords]);
         const centerCoordinate = olPolygon.getInteriorPoint().getCoordinates();
 
         newZones.push({
           id: `zone-${currentZoneId++}`,
-          polygon: [polygonCoords], // Оборачиваем в массив, так как Zone.polygon ожидает Coordinate[][]
+          polygon: [polygonCoords],
           beaconCount: 1,
         });
 
@@ -256,6 +257,18 @@ const ZoneTracking: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-200 dark:bg-gray-900 p-4">
+      <OnboardingDialog
+        title="Работа с зональным трекингом"
+        description={
+          <>
+            <p className="mb-2">На этой странице вы можете создавать и управлять зонами отслеживания на вашей карте.</p>
+            <p className="mb-2">Используйте инструменты рисования для добавления зон вручную, а также барьеров, коммутаторов и кабель-каналов.</p>
+            <p className="mb-2">Функция "Авторасчет зон" позволяет автоматически разместить зоны по всей карте с заданным размером, а также добавить маяки в центр каждой зоны.</p>
+            <p>Не забудьте сохранить вашу конфигурацию, чтобы не потерять изменения!</p>
+          </>
+        }
+        localStorageKey="onboarding_zone_tracking_page"
+      />
       <Card className="w-full max-w-6xl shadow-lg bg-gray-100 dark:bg-gray-900 mb-4">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">Зональный трекинг</CardTitle>
@@ -307,7 +320,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Нарисовать барьер</p>
+                      <p>Нарисовать область, недоступную для размещения объектов.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -322,7 +335,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Удалить барьер</p>
+                      <p>Удалить нарисованный барьер с карты.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -337,7 +350,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Нарисовать зону</p>
+                      <p>Нарисовать область для зонального отслеживания.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -352,7 +365,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Удалить зону</p>
+                      <p>Удалить нарисованную зону с карты.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -367,7 +380,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Добавить коммутатор</p>
+                      <p>Добавить новый коммутатор на карту, кликнув по желаемому месту.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -382,7 +395,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Редактировать коммутатор</p>
+                      <p>Переместить существующий коммутатор на карте.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -397,7 +410,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Удалить коммутатор</p>
+                      <p>Удалить коммутатор с карты, кликнув по нему.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -412,7 +425,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Нарисовать кабель-канал</p>
+                      <p>Нарисовать линию кабель-канала на карте.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -427,7 +440,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Редактировать кабель-канал</p>
+                      <p>Изменить форму существующего кабель-канала.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -442,7 +455,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Удалить кабель-канал</p>
+                      <p>Удалить кабель-канал или его отдельный сегмент.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -457,7 +470,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Ремасштабировать карту</p>
+                      <p>Изменить масштаб карты, нарисовав отрезок и указав его реальную длину.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -468,7 +481,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Отключить режим рисования</p>
+                      <p>Отключить текущий активный режим рисования или редактирования.</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -481,7 +494,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Отменить</p>
+                      <p>Отменить последнее действие.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -492,7 +505,7 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Вернуть</p>
+                      <p>Повторить отмененное действие.</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -512,12 +525,26 @@ const ZoneTracking: React.FC = () => {
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={handleAutoCalculateZones} className="w-full">
-                    Авторасчет зон
-                  </Button>
-                  <Button onClick={handleClearZonesAndBeacons} variant="destructive" className="w-full">
-                    Очистить зоны и маяки
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={handleAutoCalculateZones} className="w-full">
+                        Авторасчет зон
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Автоматически создает зоны заданного размера по всей карте и размещает маяки в их центрах.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={handleClearZonesAndBeacons} variant="destructive" className="w-full">
+                        Очистить зоны и маяки
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Удаляет все зоны и маяки с карты.</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 

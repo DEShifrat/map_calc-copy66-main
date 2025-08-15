@@ -16,6 +16,7 @@ import {
   MapPin, Pencil, Trash2, Square, Ruler, X, Undo2, Redo2
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import OnboardingDialog from '@/components/OnboardingDialog'; // Импорт OnboardingDialog
 
 const BLEBeacons: React.FC = () => {
   const { state, actions } = useMap();
@@ -231,6 +232,18 @@ const BLEBeacons: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-200 dark:bg-gray-900 p-4">
+      <OnboardingDialog
+        title="Работа с BLE-маяками"
+        description={
+          <>
+            <p className="mb-2">На этой странице вы можете размещать и управлять BLE-маяками на вашей карте.</p>
+            <p className="mb-2">Используйте инструменты рисования для добавления маяков вручную, редактирования их позиций или удаления.</p>
+            <p className="mb-2">Функция "Авторасчет маяков" позволяет автоматически разместить маяки по заданному шагу и типу расстановки, избегая барьеров.</p>
+            <p>Не забудьте сохранить вашу конфигурацию, чтобы не потерять изменения!</p>
+          </>
+        }
+        localStorageKey="onboarding_ble_beacons_page"
+      />
       <Card className="w-full max-w-6xl shadow-lg bg-gray-100 dark:bg-gray-900 mb-4">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">BLE маяки</CardTitle>
@@ -282,7 +295,7 @@ const BLEBeacons: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Добавить маяк</p>
+                      <p>Добавить новый маяк на карту, кликнув по желаемому месту.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -297,7 +310,7 @@ const BLEBeacons: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Редактировать маяк</p>
+                      <p>Переместить существующий маяк на карте.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -312,7 +325,7 @@ const BLEBeacons: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Удалить маяк</p>
+                      <p>Удалить маяк с карты, кликнув по нему.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -327,7 +340,7 @@ const BLEBeacons: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Нарисовать барьер</p>
+                      <p>Нарисовать область, недоступную для размещения объектов.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -342,7 +355,7 @@ const BLEBeacons: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Удалить барьер</p>
+                      <p>Удалить нарисованный барьер с карты.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -357,7 +370,7 @@ const BLEBeacons: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Ремасштабировать карту</p>
+                      <p>Изменить масштаб карты, нарисовав отрезок и указав его реальную длину.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -368,7 +381,7 @@ const BLEBeacons: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Отключить режим рисования</p>
+                      <p>Отключить текущий активный режим рисования или редактирования.</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -381,7 +394,7 @@ const BLEBeacons: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Отменить</p>
+                      <p>Отменить последнее действие.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -392,7 +405,7 @@ const BLEBeacons: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Вернуть</p>
+                      <p>Повторить отмененное действие.</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -429,12 +442,26 @@ const BLEBeacons: React.FC = () => {
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={handleAutoCalculateBeacons} className="w-full">
-                    Авторасчет маяков
-                  </Button>
-                  <Button onClick={handleClearBeacons} variant="destructive" className="w-full">
-                    Очистить маяки
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={handleAutoCalculateBeacons} className="w-full">
+                        Авторасчет маяков
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Автоматически размещает маяки по всей карте с учетом барьеров, используя заданный шаг и тип расстановки.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={handleClearBeacons} variant="destructive" className="w-full">
+                        Очистить маяки
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Удаляет все маяки с карты.</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 

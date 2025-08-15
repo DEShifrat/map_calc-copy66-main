@@ -16,6 +16,7 @@ import {
   Antenna, Pencil, Trash2, Router, Cable, Square, Ruler, X, Undo2, Redo2, Link as LinkIcon
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import OnboardingDialog from '@/components/OnboardingDialog'; // Импорт OnboardingDialog
 
 // Helper function to calculate antenna range based on height and angle
 const calculateAntennaRange = (height: number, angleDegrees: number): number => {
@@ -114,7 +115,7 @@ const AOAAntennas: React.FC = () => {
     }
   }, [actions, antennas, switches, cableDucts]);
 
-  const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string) => {
+  const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string, segmentIndex?: number) => {
     if (type === 'antenna') {
       actions.setAntennas(antennas.filter(a => a.id !== id));
     } else if (type === 'barrier') {
@@ -122,7 +123,11 @@ const AOAAntennas: React.FC = () => {
     } else if (type === 'switch') {
       actions.setSwitches(switches.filter(s => s.id !== id));
     } else if (type === 'cableDuct') {
-      actions.setCableDucts(cableDucts.filter(c => c.id !== id));
+      if (segmentIndex !== undefined) {
+        actions.deleteCableDuctSegment(id, segmentIndex);
+      } else {
+        actions.setCableDucts(cableDucts.filter(c => c.id !== id));
+      }
     }
   }, [actions, antennas, barriers, switches, cableDucts]);
 
@@ -342,6 +347,19 @@ const AOAAntennas: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-200 dark:bg-gray-900 p-4">
+      <OnboardingDialog
+        title="Работа с AOA-антеннами"
+        description={
+          <>
+            <p className="mb-2">На этой странице вы можете размещать и управлять AOA-антеннами, коммутаторами и кабель-каналами.</p>
+            <p className="mb-2">Используйте инструменты рисования для добавления объектов вручную, редактирования их позиций или удаления.</p>
+            <p className="mb-2">Функция "Авторасчет антенн" позволяет автоматически разместить антенны по всей карте с учетом барьеров.</p>
+            <p className="mb-2">"Автопривязка к кабель-каналам" автоматически соединит антенны с ближайшими основными кабель-каналами.</p>
+            <p>Не забудьте сохранить вашу конфигурацию, чтобы не потерять изменения!</p>
+          </>
+        }
+        localStorageKey="onboarding_aoa_antennas_page"
+      />
       <Card className="w-full max-w-6xl shadow-lg bg-gray-100 dark:bg-gray-900 mb-4">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">AOA антенны</CardTitle>
@@ -393,7 +411,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Добавить антенну</p>
+                      <p>Добавить новую антенну на карту, кликнув по желаемому месту.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -408,7 +426,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Редактировать антенну</p>
+                      <p>Переместить существующую антенну на карте.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -423,7 +441,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Удалить антенну</p>
+                      <p>Удалить антенну с карты, кликнув по ней.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -438,7 +456,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Добавить коммутатор</p>
+                      <p>Добавить новый коммутатор на карту, кликнув по желаемому месту.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -453,7 +471,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Редактировать коммутатор</p>
+                      <p>Переместить существующий коммутатор на карте.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -468,7 +486,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Удалить коммутатор</p>
+                      <p>Удалить коммутатор с карты, кликнув по нему.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -483,7 +501,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Нарисовать кабель-канал</p>
+                      <p>Нарисовать линию кабель-канала на карте.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -498,7 +516,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Редактировать кабель-канал</p>
+                      <p>Изменить форму существующего кабель-канала.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -513,7 +531,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Удалить кабель-канал</p>
+                      <p>Удалить кабель-канал или его отдельный сегмент.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -528,7 +546,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Нарисовать барьер</p>
+                      <p>Нарисовать область, недоступную для размещения объектов.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -543,7 +561,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Удалить барьер</p>
+                      <p>Удалить нарисованный барьер с карты.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -558,7 +576,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Ремасштабировать карту</p>
+                      <p>Изменить масштаб карты, нарисовав отрезок и указав его реальную длину.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -569,7 +587,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Отключить режим рисования</p>
+                      <p>Отключить текущий активный режим рисования или редактирования.</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -582,7 +600,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Отменить</p>
+                      <p>Отменить последнее действие.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -593,7 +611,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Вернуть</p>
+                      <p>Повторить отмененное действие.</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -647,16 +665,37 @@ const AOAAntennas: React.FC = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={handleAutoCalculateAntennas} className="w-full">
-                    Авторасчет антенн
-                  </Button>
-                  <Button onClick={handleAutoConnectAntennasToCableDucts} className="w-full">
-                    <LinkIcon className="h-4 w-4 mr-2" />
-                    Автопривязка к кабель-каналам
-                  </Button>
-                  <Button onClick={handleClearAntennasSwitchesCableDucts} variant="destructive" className="w-full col-span-2">
-                    Очистить все
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={handleAutoCalculateAntennas} className="w-full">
+                        Авторасчет антенн
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Автоматически размещает антенны по всей карте с учетом барьеров, используя рассчитанный шаг.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={handleAutoConnectAntennasToCableDucts} className="w-full">
+                        <LinkIcon className="h-4 w-4 mr-2" />
+                        Автопривязка к кабель-каналам
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Автоматически соединяет антенны с ближайшими основными кабель-каналами.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={handleClearAntennasSwitchesCableDucts} variant="destructive" className="w-full col-span-2">
+                        Очистить все
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Удаляет все антенны, коммутаторы и кабель-каналы с карты.</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
