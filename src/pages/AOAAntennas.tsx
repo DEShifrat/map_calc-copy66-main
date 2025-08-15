@@ -581,7 +581,7 @@ const AOAAntennas: React.FC = () => {
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button onClick={() => setActiveInteraction(null)} variant="secondary" className="flex items-center justify-start gap-2 px-4 h-10">
+                      <Button onClick={() => setActiveInteraction(null)} variant="default" className="flex items-center justify-start gap-2 px-4 h-10">
                         <X className="h-4 w-4" />
                         <span>Отключить режим рисования</span>
                       </Button>
