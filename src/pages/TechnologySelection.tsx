@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -70,7 +72,8 @@ const TechnologySelection: React.FC = () => {
                 <Button variant="outline" className="mt-4">
                   Вернуться к загрузке карты
                 </Button>
-              </TooltipTrigger>
+              </Link>
+            </TooltipTrigger>
             <TooltipContent>
               <p>Вернуться на главную страницу для загрузки новой карты или конфигурации.</p>
             </TooltipContent>
