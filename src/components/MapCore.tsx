@@ -662,7 +662,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           onFeatureAdd('barrier', coords);
           showSuccess('Барьер добавлен!');
         });
-        newSnapInteraction = new Snap({ source: snapSources as VectorSource<Feature> }); // Приведение типа
+        newSnapInteraction = new Snap({ sources: snapSources, pixelTolerance: 10 }); // ИСПРАВЛЕНО: source -> sources
         break;
       case 'editBarrier':
         newInteraction = new Modify({
@@ -679,7 +679,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           });
           showSuccess('Барьер обновлен!');
         });
-        newSnapInteraction = new Snap({ source: snapSources as VectorSource<Feature> }); // Приведение типа
+        newSnapInteraction = new Snap({ sources: snapSources, pixelTolerance: 10 }); // ИСПРАВЛЕНО: source -> sources
         break;
       case 'drawZone':
         newInteraction = new Draw({
