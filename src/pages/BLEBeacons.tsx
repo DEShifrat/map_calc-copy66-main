@@ -295,7 +295,7 @@ const BLEBeacons: React.FC = () => {
                         className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <MapPin className="h-4 w-4" />
-                        <span>Добавить маяк</span>
+                        <span className="truncate text-xs sm:text-sm">Добавить маяк</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -310,7 +310,7 @@ const BLEBeacons: React.FC = () => {
                         className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Pencil className="h-4 w-4" />
-                        <span>Редактировать маяк</span>
+                        <span className="truncate text-xs sm:text-sm">Редактировать маяк</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -325,7 +325,7 @@ const BLEBeacons: React.FC = () => {
                         className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Trash2 className="h-4 w-4" />
-                        <span>Удалить маяк</span>
+                        <span className="truncate text-xs sm:text-sm">Удалить маяк</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -341,7 +341,7 @@ const BLEBeacons: React.FC = () => {
                         className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Square className="h-4 w-4" />
-                        <span>Нарисовать барьер</span>
+                        <span className="truncate text-xs sm:text-sm">Нарисовать барьер</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -356,7 +356,7 @@ const BLEBeacons: React.FC = () => {
                         className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Pencil className="h-4 w-4" />
-                        <span>Редактировать барьер</span>
+                        <span className="truncate text-xs sm:text-sm">Редактировать барьер</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -371,7 +371,7 @@ const BLEBeacons: React.FC = () => {
                         className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Trash2 className="h-4 w-4" />
-                        <span>Удалить барьер</span>
+                        <span className="truncate text-xs sm:text-sm">Удалить барьер</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -387,7 +387,7 @@ const BLEBeacons: React.FC = () => {
                         className="flex items-center justify-start gap-2 px-4 h-10"
                       >
                         <Ruler className="h-4 w-4" />
-                        <span>Ремасштабировать карту</span>
+                        <span className="truncate text-xs sm:text-sm">Ремасштабировать карту</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -398,7 +398,7 @@ const BLEBeacons: React.FC = () => {
                     <TooltipTrigger asChild>
                       <Button onClick={() => setActiveInteraction(null)} variant="default" className="flex items-center justify-start gap-2 px-4 h-10">
                         <X className="h-4 w-4" />
-                        <span>Отключить режим рисования</span>
+                        <span className="truncate text-xs sm:text-sm">Отключить режим рисования</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -411,7 +411,7 @@ const BLEBeacons: React.FC = () => {
                     <TooltipTrigger asChild>
                       <Button onClick={actions.undo} disabled={!actions.canUndo} variant="outline" className="flex items-center justify-start gap-2 px-4 h-10">
                         <Undo2 className="h-4 w-4" />
-                        <span>Отменить</span>
+                        <span className="truncate text-xs sm:text-sm">Отменить</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -422,7 +422,7 @@ const BLEBeacons: React.FC = () => {
                     <TooltipTrigger asChild>
                       <Button onClick={actions.redo} disabled={!actions.canRedo} variant="outline" className="flex items-center justify-start gap-2 px-4 h-10">
                         <Redo2 className="h-4 w-4" />
-                        <span>Вернуть</span>
+                        <span className="truncate text-xs sm:text-sm">Вернуть</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -466,7 +466,7 @@ const BLEBeacons: React.FC = () => {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button onClick={handleAutoCalculateBeacons} className="w-full">
-                        Авторасчет маяков
+                        <span className="truncate text-xs sm:text-sm">Авторасчет маяков</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -476,7 +476,7 @@ const BLEBeacons: React.FC = () => {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button onClick={handleClearBeacons} variant="destructive" className="w-full">
-                        Очистить маяки
+                        <span className="truncate text-xs sm:text-sm">Очистить маяки</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>

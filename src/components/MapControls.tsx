@@ -524,7 +524,7 @@ const MapControls: React.FC<MapControlsProps> = ({
             checked={showBeacons}
             onCheckedChange={(checked) => toggleShowBeacons()}
           />
-          <Label htmlFor="showBeacons">Показать маяки</Label>
+          <Label htmlFor="showBeacons" className="text-xs sm:text-sm">Показать маяки</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -532,7 +532,7 @@ const MapControls: React.FC<MapControlsProps> = ({
             checked={showAntennas}
             onCheckedChange={(checked) => toggleShowAntennas()}
           />
-          <Label htmlFor="showAntennas">Показать антенны</Label>
+          <Label htmlFor="showAntennas" className="text-xs sm:text-sm">Показать антенны</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -540,7 +540,7 @@ const MapControls: React.FC<MapControlsProps> = ({
             checked={showBarriers}
             onCheckedChange={(checked) => toggleShowBarriers()}
           />
-          <Label htmlFor="showBarriers">Показать барьеры</Label>
+          <Label htmlFor="showBarriers" className="text-xs sm:text-sm">Показать барьеры</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -548,7 +548,7 @@ const MapControls: React.FC<MapControlsProps> = ({
             checked={showAntennaRanges}
             onCheckedChange={(checked) => toggleShowAntennaRanges()}
           />
-          <Label htmlFor="showAntennaRanges">Показать радиус антенн</Label>
+          <Label htmlFor="showAntennaRanges" className="text-xs sm:text-sm">Показать радиус антенн</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -556,7 +556,7 @@ const MapControls: React.FC<MapControlsProps> = ({
             checked={showZones}
             onCheckedChange={(checked) => toggleShowZones()}
           />
-          <Label htmlFor="showZones">Показать зоны</Label>
+          <Label htmlFor="showZones" className="text-xs sm:text-sm">Показать зоны</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -564,7 +564,7 @@ const MapControls: React.FC<MapControlsProps> = ({
             checked={showSwitches}
             onCheckedChange={(checked) => toggleShowSwitches()}
           />
-          <Label htmlFor="showSwitches">Показать коммутаторы</Label>
+          <Label htmlFor="showSwitches" className="text-xs sm:text-sm">Показать коммутаторы</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -572,7 +572,7 @@ const MapControls: React.FC<MapControlsProps> = ({
             checked={showCableDucts}
             onCheckedChange={(checked) => toggleShowCableDucts()}
           />
-          <Label htmlFor="showCableDucts">Показать кабель-каналы</Label>
+          <Label htmlFor="showCableDucts" className="text-xs sm:text-sm">Показать кабель-каналы</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -580,7 +580,7 @@ const MapControls: React.FC<MapControlsProps> = ({
             checked={showCableDuctLengths}
             onCheckedChange={(checked) => toggleShowCableDuctLengths()}
           />
-          <Label htmlFor="showCableDuctLengths">Показать длину кабеля</Label>
+          <Label htmlFor="showCableDuctLengths" className="text-xs sm:text-sm">Показать длину кабеля</Label>
         </div>
       </div>
 
