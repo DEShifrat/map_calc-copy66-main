@@ -22,6 +22,7 @@ import { Draw, Modify, Snap, Interaction } from 'ol/interaction';
 import { showSuccess, showError } from '@/utils/toast';
 import { findClosestSegment } from '@/lib/utils';
 import { FeatureLike } from 'ol/Feature';
+import Collection from 'ol/Collection'; // Импорт Collection для объединения источников
 
 // --- Стили, определенные за пределами компонента для избежания проблем с инициализацией ---
 const beaconStyle = new Style({
@@ -178,7 +179,7 @@ export type MapInteractionType =
   | 'editAntenna'
   | 'editSwitch'
   | 'editCableDuct'
-  | 'editBarrier' // Добавлен новый тип взаимодействия
+  | 'editBarrier'
   | 'deleteBeacon'
   | 'deleteAntenna'
   | 'deleteZone'
@@ -266,6 +267,13 @@ const MapCore: React.FC<MapCoreProps> = ({
 
   const rescaleDrawSource = useRef(new VectorSource({ features: [] }));
   const rescaleDrawLayer = useRef(new VectorLayer({ source: rescaleDrawSource.current }));
+
+  // Источник и слой для границ карты (для привязки)
+  const mapBoundarySource = useRef(new VectorSource({ features: [] }));
+  const mapBoundaryLayer = useRef(new VectorLayer({
+    source: mapBoundarySource.current,
+    style: new Style({ stroke: new Stroke({ color: 'rgba(0,0,0,0)', width: 0 }) }) // Невидимый стиль
+  }));
 
   // Refs for managing OpenLayers interactions
   const drawInteractionRef = useRef<Draw | null>(null);
@@ -401,6 +409,7 @@ const MapCore: React.FC<MapCoreProps> = ({
         switchVectorLayer.current,
         cableDuctVectorLayer.current,
         rescaleDrawLayer.current,
+        mapBoundaryLayer.current, // Добавляем слой границ карты
       ],
       view: new View({
         projection: imageProjection,
@@ -415,6 +424,21 @@ const MapCore: React.FC<MapCoreProps> = ({
       initialMap.setTarget(undefined);
     };
   }, [mapImageSrc, mapWidthMeters, mapHeightMeters]);
+
+  // Effect to update map boundary features when dimensions change
+  useEffect(() => {
+    if (mapWidthMeters > 0 && mapHeightMeters > 0) {
+      mapBoundarySource.current.clear();
+      const boundaryPolygon = new Polygon([[
+        [0, 0],
+        [mapWidthMeters, 0],
+        [mapWidthMeters, mapHeightMeters],
+        [0, mapHeightMeters],
+        [0, 0]
+      ]]);
+      mapBoundarySource.current.addFeature(new Feature(boundaryPolygon));
+    }
+  }, [mapWidthMeters, mapHeightMeters]);
 
   // Effects to update layer styles based on state changes
   useEffect(() => {
@@ -620,6 +644,11 @@ const MapCore: React.FC<MapCoreProps> = ({
     let newClickListener: ((event: any) => void) | null = null;
     let newSnapInteraction: Snap | null = null;
 
+    // Создаем коллекцию источников для привязки
+    const snapSources = new Collection<VectorSource>();
+    snapSources.push(barrierVectorSource.current); // Привязка к существующим барьерам
+    snapSources.push(mapBoundarySource.current); // Привязка к границам карты
+
     switch (activeInteraction) {
       case 'drawBarrier':
         newInteraction = new Draw({
@@ -632,9 +661,9 @@ const MapCore: React.FC<MapCoreProps> = ({
           onFeatureAdd('barrier', coords);
           showSuccess('Барьер добавлен!');
         });
-        newSnapInteraction = new Snap({ source: barrierVectorSource.current });
+        newSnapInteraction = new Snap({ source: snapSources, pixelTolerance: 10 });
         break;
-      case 'editBarrier': // Новый случай для редактирования барьеров
+      case 'editBarrier':
         newInteraction = new Modify({
           source: barrierVectorSource.current,
           style: sketchStyle,
@@ -649,7 +678,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           });
           showSuccess('Барьер обновлен!');
         });
-        newSnapInteraction = new Snap({ source: barrierVectorSource.current });
+        newSnapInteraction = new Snap({ source: snapSources, pixelTolerance: 10 });
         break;
       case 'drawZone':
         newInteraction = new Draw({
@@ -932,7 +961,7 @@ const MapCore: React.FC<MapCoreProps> = ({
     const handlePointerMove = (event: any) => {
       let foundFeatureId: string | null = null;
       let foundSegmentIndex: number | null = null;
-      const deletionModes = ['deleteBeacon', 'deleteAntenna', 'deleteZone', 'deleteBarrier', 'deleteSwitch', 'deleteCableDuct', 'editBarrier']; // Добавлен editBarrier
+      const deletionModes = ['deleteBeacon', 'deleteAntenna', 'deleteZone', 'deleteBarrier', 'deleteSwitch', 'deleteCableDuct', 'editBarrier'];
 
       if (deletionModes.includes(activeInteraction || '')) {
         mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
@@ -951,7 +980,7 @@ const MapCore: React.FC<MapCoreProps> = ({
               (activeInteraction === 'deleteBeacon' && geomType instanceof Point && beacons.some(b => b.id === featureId)) ||
               (activeInteraction === 'deleteAntenna' && geomType instanceof Point && antennas.some(a => a.id === featureId)) ||
               (activeInteraction === 'deleteZone' && geomType instanceof Polygon && zones.some(z => z.id === featureId)) ||
-              ((activeInteraction === 'deleteBarrier' || activeInteraction === 'editBarrier') && geomType instanceof Polygon && barriers.some(b => JSON.stringify(b) === featureId)) || // Обновлено
+              ((activeInteraction === 'deleteBarrier' || activeInteraction === 'editBarrier') && geomType instanceof Polygon && barriers.some(b => JSON.stringify(b) === featureId)) ||
               (activeInteraction === 'deleteSwitch' && geomType instanceof Point && switches.some(s => s.id === featureId))
             ) {
               foundFeatureId = featureId;
