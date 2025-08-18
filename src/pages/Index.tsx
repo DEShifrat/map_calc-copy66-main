@@ -92,7 +92,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-200 dark:bg-gray-900 p-4">
+    <div className="min-h-screen flex flex-col items-center bg-gray-200 dark:bg-gray-900 p-4 py-8">
       <OnboardingDialog
         title="Добро пожаловать в приложение для планирования карт!"
         description={
@@ -104,7 +104,7 @@ const Index = () => {
         }
         localStorageKey="onboarding_index_page"
       />
-      <Card className="w-full shadow-lg bg-gray-100 dark:bg-gray-900">
+      <Card className="w-full max-w-3xl shadow-lg bg-gray-100 dark:bg-gray-900">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">Управление картами и BLE-маяками</CardTitle>
         </CardHeader>
