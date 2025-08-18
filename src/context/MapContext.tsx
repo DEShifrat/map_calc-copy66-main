@@ -90,7 +90,8 @@ type MapHistoryAction =
   | { type: 'REDO' }
   | { type: 'RESET_MAP_DATA' }
   | { type: 'LOAD_CONFIGURATION'; payload: SavedMapConfig }
-  | { type: 'DELETE_CABLE_DUCT_SEGMENT'; payload: { id: string; segmentIndex: number } };
+  | { type: 'DELETE_CABLE_DUCT_SEGMENT'; payload: { id: string; segmentIndex: number } }
+  | { type: 'UPDATE_BARRIER'; payload: { oldCoords: Coordinate[][][]; newCoords: Coordinate[][][] } }; // Добавлен новый тип действия
 
 const MAX_HISTORY_SIZE = 20; // Максимальное количество состояний в истории
 
@@ -232,6 +233,18 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
       });
       return mapHistoryReducer(state, { type: 'UPDATE_STATE', payload: { cableDucts: updatedCableDucts } });
     }
+    case 'UPDATE_BARRIER': { // Новый обработчик для обновления барьера
+      const { oldCoords, newCoords } = action.payload;
+      const updatedBarriers = state.current.barriers.map(barrier => {
+        // Сравниваем барьеры по их строковому представлению координат,
+        // так как ID генерируется из них в MapCore.
+        if (JSON.stringify(barrier) === JSON.stringify(oldCoords)) {
+          return newCoords;
+        }
+        return barrier;
+      });
+      return mapHistoryReducer(state, { type: 'UPDATE_STATE', payload: { barriers: updatedBarriers } });
+    }
     default:
       return state;
   }
@@ -272,6 +285,7 @@ interface MapActions {
   canUndo: boolean;
   canRedo: boolean;
   deleteCableDuctSegment: (id: string, segmentIndex: number) => void;
+  updateBarrier: (oldCoords: Coordinate[][][], newCoords: Coordinate[][][]) => void; // Добавлен новый метод
 }
 
 const MapContext = createContext<{ state: MapState; actions: MapActions } | undefined>(undefined);
@@ -306,6 +320,7 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     canUndo: historyState.historyIndex > 0,
     canRedo: historyState.historyIndex < historyState.history.length - 1,
     deleteCableDuctSegment: (id, segmentIndex) => dispatch({ type: 'DELETE_CABLE_DUCT_SEGMENT', payload: { id, segmentIndex } }),
+    updateBarrier: (oldCoords, newCoords) => dispatch({ type: 'UPDATE_BARRIER', payload: { oldCoords, newCoords } }), // Добавлен новый метод
   }), [historyState]);
 
   return (

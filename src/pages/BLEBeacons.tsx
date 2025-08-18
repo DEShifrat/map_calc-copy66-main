@@ -64,9 +64,13 @@ const BLEBeacons: React.FC = () => {
     }
   }, [actions, beacons, barriers]);
 
-  const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
+  const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[][]) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.map(b => b.id === id ? { ...b, position: newPosition as Coordinate } : b));
+    } else if (type === 'barrier') {
+      // Для барьеров 'id' - это JSON.stringify(oldCoords), а newPosition - это newCoords
+      const oldCoords = JSON.parse(id) as Coordinate[][][];
+      actions.updateBarrier(oldCoords, newPosition as Coordinate[][][]);
     } else {
       setActiveInteraction(null);
     }
@@ -328,21 +332,7 @@ const BLEBeacons: React.FC = () => {
                       <p>Удалить маяк с карты, кликнув по нему.</p>
                     </TooltipContent>
                   </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => handleInteractionChange('rescale')}
-                        variant={activeInteraction === 'rescale' ? 'default' : 'outline'}
-                        className="flex items-center justify-start gap-2 px-4 h-10"
-                      >
-                        <Ruler className="h-4 w-4" />
-                        <span>Ремасштабировать карту</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Изменить масштаб карты, нарисовав отрезок и указав его реальную длину.</p>
-                    </TooltipContent>
-                  </Tooltip>
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -361,6 +351,21 @@ const BLEBeacons: React.FC = () => {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
+                        onClick={() => handleInteractionChange('editBarrier')}
+                        variant={activeInteraction === 'editBarrier' ? 'default' : 'outline'}
+                        className="flex items-center justify-start gap-2 px-4 h-10"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        <span>Редактировать барьер</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Изменить форму существующего барьера.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
                         onClick={() => handleInteractionChange('deleteBarrier')}
                         variant={activeInteraction === 'deleteBarrier' ? 'destructive' : 'outline'}
                         className="flex items-center justify-start gap-2 px-4 h-10"
@@ -371,6 +376,22 @@ const BLEBeacons: React.FC = () => {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Удалить нарисованный барьер с карты.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('rescale')}
+                        variant={activeInteraction === 'rescale' ? 'default' : 'outline'}
+                        className="flex items-center justify-start gap-2 px-4 h-10"
+                      >
+                        <Ruler className="h-4 w-4" />
+                        <span>Ремасштабировать карту</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Изменить масштаб карты, нарисовав отрезок и указав его реальную длину.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>

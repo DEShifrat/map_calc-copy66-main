@@ -67,11 +67,14 @@ const ZoneTracking: React.FC = () => {
     }
   }, [actions, barriers, zones, switches, cableDucts]);
 
-  const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => {
+  const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[][]) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.map(b => b.id === id ? { ...b, position: newPosition as Coordinate } : b));
     } else if (type === 'antenna') {
       actions.setAntennas(antennas.map(a => a.id === id ? { ...a, position: newPosition as Coordinate } : a));
+    } else if (type === 'barrier') {
+      const oldCoords = JSON.parse(id) as Coordinate[][][];
+      actions.updateBarrier(oldCoords, newPosition as Coordinate[][][]);
     } else if (type === 'switch') {
       actions.setSwitches(switches.map(s => s.id === id ? { ...s, position: newPosition as Coordinate } : s));
     } else if (type === 'cableDuct') {
@@ -342,6 +345,52 @@ const ZoneTracking: React.FC = () => {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
+                        onClick={() => handleInteractionChange('drawBarrier')}
+                        variant={activeInteraction === 'drawBarrier' ? 'default' : 'outline'}
+                        className="flex items-center justify-start gap-2 px-4 h-10"
+                      >
+                        <Square className="h-4 w-4" />
+                        <span>Нарисовать барьер</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Нарисовать область, недоступную для размещения объектов.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('editBarrier')}
+                        variant={activeInteraction === 'editBarrier' ? 'default' : 'outline'}
+                        className="flex items-center justify-start gap-2 px-4 h-10"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        <span>Редактировать барьер</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Изменить форму существующего барьера.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('deleteBarrier')}
+                        variant={activeInteraction === 'deleteBarrier' ? 'destructive' : 'outline'}
+                        className="flex items-center justify-start gap-2 px-4 h-10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span>Удалить барьер</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Удалить нарисованный барьер с карты.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
                         onClick={() => handleInteractionChange('manualSwitch')}
                         variant={activeInteraction === 'manualSwitch' ? 'default' : 'outline'}
                         className="flex items-center justify-start gap-2 px-4 h-10"
@@ -444,36 +493,6 @@ const ZoneTracking: React.FC = () => {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Изменить масштаб карты, нарисовав отрезок и указав его реальную длину.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => handleInteractionChange('drawBarrier')}
-                        variant={activeInteraction === 'drawBarrier' ? 'default' : 'outline'}
-                        className="flex items-center justify-start gap-2 px-4 h-10"
-                      >
-                        <Square className="h-4 w-4" />
-                        <span>Нарисовать барьер</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Нарисовать область, недоступную для размещения объектов.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => handleInteractionChange('deleteBarrier')}
-                        variant={activeInteraction === 'deleteBarrier' ? 'destructive' : 'outline'}
-                        className="flex items-center justify-start gap-2 px-4 h-10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span>Удалить барьер</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Удалить нарисованный барьер с карты.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>

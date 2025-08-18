@@ -178,6 +178,7 @@ export type MapInteractionType =
   | 'editAntenna'
   | 'editSwitch'
   | 'editCableDuct'
+  | 'editBarrier' // Добавлен новый тип взаимодействия
   | 'deleteBeacon'
   | 'deleteAntenna'
   | 'deleteZone'
@@ -207,7 +208,7 @@ interface MapCoreProps {
   showCableDuctLengths: boolean;
   activeInteraction: MapInteractionType;
   onFeatureAdd: (type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => void;
-  onFeatureModify: (type: 'beacon' | 'antenna' | 'switch' | 'cableDuct', id: string, newPosition: Coordinate | Coordinate[]) => void;
+  onFeatureModify: (type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[][]) => void;
   onFeatureDelete: (type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string, segmentIndex?: number) => void;
   onRescaleDrawEnd: (drawnLengthMeters: number) => void;
   beaconPrice: number;
@@ -431,6 +432,19 @@ const MapCore: React.FC<MapCoreProps> = ({
 
   useEffect(() => {
     if (mapInstance) {
+      barrierVectorLayer.current.setStyle((feature: FeatureLike) => {
+        const styles = [barrierStyle];
+        if (feature.get('id') === hoveredFeatureId && (activeInteraction === 'deleteBarrier' || activeInteraction === 'editBarrier')) {
+          styles.push(barrierHoverStyle);
+        }
+        return styles;
+      });
+      barrierVectorLayer.current.changed();
+    }
+  }, [mapInstance, hoveredFeatureId, activeInteraction]);
+
+  useEffect(() => {
+    if (mapInstance) {
       antennaVectorLayer.current.setStyle((feature: FeatureLike) => {
         const styles = getAntennaStyle(feature);
         if (feature.get('id') === hoveredFeatureId) {
@@ -441,19 +455,6 @@ const MapCore: React.FC<MapCoreProps> = ({
       antennaVectorLayer.current.changed();
     }
   }, [mapInstance, getAntennaStyle, hoveredFeatureId]);
-
-  useEffect(() => {
-    if (mapInstance) {
-      barrierVectorLayer.current.setStyle((feature: FeatureLike) => {
-        const styles = [barrierStyle];
-        if (feature.get('id') === hoveredFeatureId && (activeInteraction === 'deleteBarrier')) {
-          styles.push(barrierHoverStyle);
-        }
-        return styles;
-      });
-      barrierVectorLayer.current.changed();
-    }
-  }, [mapInstance, hoveredFeatureId, activeInteraction]);
 
   useEffect(() => {
     if (mapInstance) {
@@ -630,6 +631,23 @@ const MapCore: React.FC<MapCoreProps> = ({
           const coords = event.feature.getGeometry()?.getCoordinates() as Coordinate[][];
           onFeatureAdd('barrier', coords);
           showSuccess('Барьер добавлен!');
+        });
+        newSnapInteraction = new Snap({ source: barrierVectorSource.current });
+        break;
+      case 'editBarrier': // Новый случай для редактирования барьеров
+        newInteraction = new Modify({
+          source: barrierVectorSource.current,
+          style: sketchStyle,
+        });
+        (newInteraction as Modify).on('modifyend', (event: any) => {
+          event.features.forEach((feature: Feature<Polygon>) => {
+            const id = feature.get('id');
+            const geometry = feature.getGeometry();
+            if (id && geometry instanceof Polygon) {
+              onFeatureModify('barrier', id, geometry.getCoordinates() as Coordinate[][]);
+            }
+          });
+          showSuccess('Барьер обновлен!');
         });
         newSnapInteraction = new Snap({ source: barrierVectorSource.current });
         break;
@@ -914,7 +932,7 @@ const MapCore: React.FC<MapCoreProps> = ({
     const handlePointerMove = (event: any) => {
       let foundFeatureId: string | null = null;
       let foundSegmentIndex: number | null = null;
-      const deletionModes = ['deleteBeacon', 'deleteAntenna', 'deleteZone', 'deleteBarrier', 'deleteSwitch', 'deleteCableDuct'];
+      const deletionModes = ['deleteBeacon', 'deleteAntenna', 'deleteZone', 'deleteBarrier', 'deleteSwitch', 'deleteCableDuct', 'editBarrier']; // Добавлен editBarrier
 
       if (deletionModes.includes(activeInteraction || '')) {
         mapInstance.forEachFeatureAtPixel(event.pixel, (feature) => {
@@ -933,7 +951,7 @@ const MapCore: React.FC<MapCoreProps> = ({
               (activeInteraction === 'deleteBeacon' && geomType instanceof Point && beacons.some(b => b.id === featureId)) ||
               (activeInteraction === 'deleteAntenna' && geomType instanceof Point && antennas.some(a => a.id === featureId)) ||
               (activeInteraction === 'deleteZone' && geomType instanceof Polygon && zones.some(z => z.id === featureId)) ||
-              (activeInteraction === 'deleteBarrier' && geomType instanceof Polygon && barriers.some(b => JSON.stringify(b) === featureId)) ||
+              ((activeInteraction === 'deleteBarrier' || activeInteraction === 'editBarrier') && geomType instanceof Polygon && barriers.some(b => JSON.stringify(b) === featureId)) || // Обновлено
               (activeInteraction === 'deleteSwitch' && geomType instanceof Point && switches.some(s => s.id === featureId))
             ) {
               foundFeatureId = featureId;
