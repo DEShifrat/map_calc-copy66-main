@@ -65,8 +65,8 @@ const RescaleDialog: React.FC<RescaleDialogProps> = ({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               className="col-span-3"
-              min="0.1"
-              step="0.1"
+              step="0.1" // Разрешаем десятичные значения
+              // min="0.1" удален, так как валидация уже есть в handleConfirm
             />
           </div>
         </div>

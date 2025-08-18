@@ -121,7 +121,7 @@ const Index = () => {
                 type="number"
                 value={mapWidthInput}
                 onChange={(e) => setMapWidthInput(Number(e.target.value))}
-                min="1"
+                step="0.1" // Разрешаем десятичные значения
               />
             </div>
             <div className="space-y-2">
@@ -131,7 +131,7 @@ const Index = () => {
                 type="number"
                 value={mapHeightInput}
                 onChange={(e) => setMapHeightInput(Number(e.target.value))}
-                min="1"
+                step="0.1" // Разрешаем десятичные значения
               />
             </div>
             <Tooltip>

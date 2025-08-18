@@ -542,8 +542,8 @@ const ZoneTracking: React.FC = () => {
                     type="number"
                     value={zoneSizeInput}
                     onChange={(e) => setZoneSizeInput(Number(e.target.value))}
-                    min="1"
-                    step="1"
+                    step="0.1" // Разрешаем десятичные значения
+                    // min="1" удален, так как валидация уже есть в handleAutoCalculateZones
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -581,7 +581,7 @@ const ZoneTracking: React.FC = () => {
                       value={beaconPrice}
                       onChange={(e) => actions.setBeaconPrice(Number(e.target.value))}
                       min="0"
-                      step="0.1"
+                      step="0.01" // Разрешаем десятичные значения для цены
                     />
                   </div>
                   <div className="space-y-2">
@@ -592,7 +592,7 @@ const ZoneTracking: React.FC = () => {
                       value={antennaPrice}
                       onChange={(e) => actions.setAntennaPrice(Number(e.target.value))}
                       min="0"
-                      step="0.1"
+                      step="0.01" // Разрешаем десятичные значения для цены
                     />
                   </div>
                   <div className="space-y-2 col-span-full">
@@ -603,7 +603,7 @@ const ZoneTracking: React.FC = () => {
                       value={cablePricePerMeter}
                       onChange={(e) => actions.setCablePricePerMeter(Number(e.target.value))}
                       min="0"
-                      step="0.01"
+                      step="0.01" // Разрешаем десятичные значения для цены
                     />
                   </div>
                 </div>

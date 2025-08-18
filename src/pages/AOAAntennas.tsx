@@ -659,8 +659,8 @@ const AOAAntennas: React.FC = () => {
                       type="number"
                       value={defaultAntennaHeightInput}
                       onChange={(e) => setDefaultAntennaHeightInput(Number(e.target.value))}
-                      min="0.1"
-                      step="0.1"
+                      step="0.1" // Разрешаем десятичные значения
+                      // min="0.1" удален, так как валидация уже есть в handleAutoCalculateAntennas
                     />
                   </div>
                   <div className="space-y-2">
@@ -732,7 +732,7 @@ const AOAAntennas: React.FC = () => {
                       value={beaconPrice}
                       onChange={(e) => actions.setBeaconPrice(Number(e.target.value))}
                       min="0"
-                      step="0.1"
+                      step="0.01" // Разрешаем десятичные значения для цены
                     />
                   </div>
                   <div className="space-y-2">
@@ -743,7 +743,7 @@ const AOAAntennas: React.FC = () => {
                       value={antennaPrice}
                       onChange={(e) => actions.setAntennaPrice(Number(e.target.value))}
                       min="0"
-                      step="0.1"
+                      step="0.01" // Разрешаем десятичные значения для цены
                     />
                   </div>
                   <div className="space-y-2 col-span-full">
@@ -754,7 +754,7 @@ const AOAAntennas: React.FC = () => {
                       value={cablePricePerMeter}
                       onChange={(e) => actions.setCablePricePerMeter(Number(e.target.value))}
                       min="0"
-                      step="0.01"
+                      step="0.01" // Разрешаем десятичные значения для цены
                     />
                   </div>
                 </div>
