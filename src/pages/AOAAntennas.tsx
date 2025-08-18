@@ -444,6 +444,7 @@ const AOAAntennas: React.FC = () => {
                       <p>Удалить антенну с карты, кликнув по ней.</p>
                     </TooltipContent>
                   </Tooltip>
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -489,6 +490,7 @@ const AOAAntennas: React.FC = () => {
                       <p>Удалить коммутатор с карты, кликнув по нему.</p>
                     </TooltipContent>
                   </Tooltip>
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -534,6 +536,22 @@ const AOAAntennas: React.FC = () => {
                       <p>Удалить кабель-канал или его отдельный сегмент.</p>
                     </TooltipContent>
                   </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('rescale')}
+                        variant={activeInteraction === 'rescale' ? 'default' : 'outline'}
+                        className="flex items-center justify-start gap-2 px-4 h-10"
+                      >
+                        <Ruler className="h-4 w-4" />
+                        <span>Ремасштабировать карту</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Изменить масштаб карты, нарисовав отрезок и указав его реальную длину.</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -562,21 +580,6 @@ const AOAAntennas: React.FC = () => {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Удалить нарисованный барьер с карты.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => handleInteractionChange('rescale')}
-                        variant={activeInteraction === 'rescale' ? 'default' : 'outline'}
-                        className="flex items-center justify-start gap-2 px-4 h-10"
-                      >
-                        <Ruler className="h-4 w-4" />
-                        <span>Ремасштабировать карту</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Изменить масштаб карты, нарисовав отрезок и указав его реальную длину.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>

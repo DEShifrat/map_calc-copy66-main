@@ -331,6 +331,21 @@ const BLEBeacons: React.FC = () => {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
+                        onClick={() => handleInteractionChange('rescale')}
+                        variant={activeInteraction === 'rescale' ? 'default' : 'outline'}
+                        className="flex items-center justify-start gap-2 px-4 h-10"
+                      >
+                        <Ruler className="h-4 w-4" />
+                        <span>Ремасштабировать карту</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Изменить масштаб карты, нарисовав отрезок и указав его реальную длину.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
                         onClick={() => handleInteractionChange('drawBarrier')}
                         variant={activeInteraction === 'drawBarrier' ? 'default' : 'outline'}
                         className="flex items-center justify-start gap-2 px-4 h-10"
@@ -356,21 +371,6 @@ const BLEBeacons: React.FC = () => {
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Удалить нарисованный барьер с карты.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => handleInteractionChange('rescale')}
-                        variant={activeInteraction === 'rescale' ? 'default' : 'outline'}
-                        className="flex items-center justify-start gap-2 px-4 h-10"
-                      >
-                        <Ruler className="h-4 w-4" />
-                        <span>Ремасштабировать карту</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Изменить масштаб карты, нарисовав отрезок и указав его реальную длину.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
