@@ -91,7 +91,7 @@ type MapHistoryAction =
   | { type: 'RESET_MAP_DATA' }
   | { type: 'LOAD_CONFIGURATION'; payload: SavedMapConfig }
   | { type: 'DELETE_CABLE_DUCT_SEGMENT'; payload: { id: string; segmentIndex: number } }
-  | { type: 'UPDATE_BARRIER'; payload: { oldCoords: Coordinate[][][]; newCoords: Coordinate[][][] } }; // Добавлен новый тип действия
+  | { type: 'UPDATE_BARRIER'; payload: { oldBarrierId: string; newCoords: Coordinate[][] } }; // Изменено: теперь принимает oldBarrierId (string) и newCoords (Coordinate[][])
 
 const MAX_HISTORY_SIZE = 20; // Максимальное количество состояний в истории
 
@@ -234,11 +234,11 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
       return mapHistoryReducer(state, { type: 'UPDATE_STATE', payload: { cableDucts: updatedCableDucts } });
     }
     case 'UPDATE_BARRIER': { // Новый обработчик для обновления барьера
-      const { oldCoords, newCoords } = action.payload;
+      const { oldBarrierId, newCoords } = action.payload; // Изменено: oldCoords теперь oldBarrierId
       const updatedBarriers = state.current.barriers.map(barrier => {
         // Сравниваем барьеры по их строковому представлению координат,
         // так как ID генерируется из них в MapCore.
-        if (JSON.stringify(barrier) === JSON.stringify(oldCoords)) {
+        if (JSON.stringify(barrier) === oldBarrierId) { // Сравниваем с oldBarrierId
           return newCoords;
         }
         return barrier;
@@ -285,7 +285,7 @@ interface MapActions {
   canUndo: boolean;
   canRedo: boolean;
   deleteCableDuctSegment: (id: string, segmentIndex: number) => void;
-  updateBarrier: (oldCoords: Coordinate[][][], newCoords: Coordinate[][][]) => void; // Добавлен новый метод
+  updateBarrier: (oldBarrierId: string, newCoords: Coordinate[][]) => void; // Изменено: теперь принимает oldBarrierId (string) и newCoords (Coordinate[][])
 }
 
 const MapContext = createContext<{ state: MapState; actions: MapActions } | undefined>(undefined);
@@ -320,7 +320,7 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     canUndo: historyState.historyIndex > 0,
     canRedo: historyState.historyIndex < historyState.history.length - 1,
     deleteCableDuctSegment: (id, segmentIndex) => dispatch({ type: 'DELETE_CABLE_DUCT_SEGMENT', payload: { id, segmentIndex } }),
-    updateBarrier: (oldCoords, newCoords) => dispatch({ type: 'UPDATE_BARRIER', payload: { oldCoords, newCoords } }), // Добавлен новый метод
+    updateBarrier: (oldBarrierId, newCoords) => dispatch({ type: 'UPDATE_BARRIER', payload: { oldBarrierId, newCoords } }), // Изменено
   }), [historyState]);
 
   return (

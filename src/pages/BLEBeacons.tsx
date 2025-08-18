@@ -64,13 +64,13 @@ const BLEBeacons: React.FC = () => {
     }
   }, [actions, beacons, barriers]);
 
-  const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[][]) => {
+  const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[] | Coordinate[][]) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.map(b => b.id === id ? { ...b, position: newPosition as Coordinate } : b));
     } else if (type === 'barrier') {
       // Для барьеров 'id' - это JSON.stringify(oldCoords), а newPosition - это newCoords
-      const oldCoords = JSON.parse(id) as Coordinate[][][];
-      actions.updateBarrier(oldCoords, newPosition as Coordinate[][][]);
+      const oldBarrierId = id; // id уже является JSON.stringify(oldCoords)
+      actions.updateBarrier(oldBarrierId, newPosition as Coordinate[][]);
     } else {
       setActiveInteraction(null);
     }

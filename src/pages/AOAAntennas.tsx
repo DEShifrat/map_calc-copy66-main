@@ -103,12 +103,12 @@ const AOAAntennas: React.FC = () => {
     }
   }, [actions, antennas, barriers, switches, cableDucts, calculatedAntennaRange]);
 
-  const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[][]) => {
+  const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[] | Coordinate[][]) => {
     if (type === 'antenna') {
       actions.setAntennas(antennas.map(a => a.id === id ? { ...a, position: newPosition as Coordinate } : a));
     } else if (type === 'barrier') {
-      const oldCoords = JSON.parse(id) as Coordinate[][][];
-      actions.updateBarrier(oldCoords, newPosition as Coordinate[][][]);
+      const oldBarrierId = id; // id уже является JSON.stringify(oldCoords)
+      actions.updateBarrier(oldBarrierId, newPosition as Coordinate[][]);
     } else if (type === 'switch') {
       actions.setSwitches(switches.map(s => s.id === id ? { ...s, position: newPosition as Coordinate } : s));
       setActiveInteraction(null);

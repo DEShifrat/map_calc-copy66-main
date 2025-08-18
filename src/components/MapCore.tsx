@@ -208,8 +208,9 @@ interface MapCoreProps {
   showCableDucts: boolean;
   showCableDuctLengths: boolean;
   activeInteraction: MapInteractionType;
+  // Обновленная сигнатура для onFeatureModify
   onFeatureAdd: (type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => void;
-  onFeatureModify: (type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[][]) => void;
+  onFeatureModify: (type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[] | Coordinate[][]) => void;
   onFeatureDelete: (type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string, segmentIndex?: number) => void;
   onRescaleDrawEnd: (drawnLengthMeters: number) => void;
   beaconPrice: number;
@@ -645,7 +646,7 @@ const MapCore: React.FC<MapCoreProps> = ({
     let newSnapInteraction: Snap | null = null;
 
     // Создаем коллекцию источников для привязки
-    const snapSources = new Collection<VectorSource>();
+    const snapSources = new Collection<VectorSource<Feature>>(); // Уточненный тип для Collection
     snapSources.push(barrierVectorSource.current); // Привязка к существующим барьерам
     snapSources.push(mapBoundarySource.current); // Привязка к границам карты
 
@@ -661,7 +662,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           onFeatureAdd('barrier', coords);
           showSuccess('Барьер добавлен!');
         });
-        newSnapInteraction = new Snap({ source: snapSources, pixelTolerance: 10 });
+        newSnapInteraction = new Snap({ source: snapSources as VectorSource<Feature> }); // Приведение типа
         break;
       case 'editBarrier':
         newInteraction = new Modify({
@@ -670,7 +671,7 @@ const MapCore: React.FC<MapCoreProps> = ({
         });
         (newInteraction as Modify).on('modifyend', (event: any) => {
           event.features.forEach((feature: Feature<Polygon>) => {
-            const id = feature.get('id');
+            const id = feature.get('id'); // Это JSON.stringify(oldCoords)
             const geometry = feature.getGeometry();
             if (id && geometry instanceof Polygon) {
               onFeatureModify('barrier', id, geometry.getCoordinates() as Coordinate[][]);
@@ -678,7 +679,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           });
           showSuccess('Барьер обновлен!');
         });
-        newSnapInteraction = new Snap({ source: snapSources, pixelTolerance: 10 });
+        newSnapInteraction = new Snap({ source: snapSources as VectorSource<Feature> }); // Приведение типа
         break;
       case 'drawZone':
         newInteraction = new Draw({
