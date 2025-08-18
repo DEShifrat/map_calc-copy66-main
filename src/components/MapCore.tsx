@@ -276,6 +276,9 @@ const MapCore: React.FC<MapCoreProps> = ({
     style: new Style({ stroke: new Stroke({ color: 'rgba(0,0,0,0)', width: 0 }) }) // Невидимый стиль
   }));
 
+  // Новый объединенный источник для Snap interaction
+  const combinedSnapSource = useRef(new VectorSource({ features: [] }));
+
   // Refs for managing OpenLayers interactions
   const drawInteractionRef = useRef<Draw | null>(null);
   const modifyInteractionRef = useRef<Modify | null>(null);
@@ -440,6 +443,19 @@ const MapCore: React.FC<MapCoreProps> = ({
       mapBoundarySource.current.addFeature(new Feature(boundaryPolygon));
     }
   }, [mapWidthMeters, mapHeightMeters]);
+
+  // Effect to update combinedSnapSource for snapping
+  useEffect(() => {
+    combinedSnapSource.current.clear();
+    // Add features from barrier source
+    barrierVectorSource.current.getFeatures().forEach(feature => {
+        combinedSnapSource.current.addFeature(feature);
+    });
+    // Add features from map boundary source
+    mapBoundarySource.current.getFeatures().forEach(feature => {
+        combinedSnapSource.current.addFeature(feature);
+    });
+  }, [barriers, mapWidthMeters, mapHeightMeters]); // Dependencies: when barriers or map dimensions change
 
   // Effects to update layer styles based on state changes
   useEffect(() => {
@@ -645,11 +661,6 @@ const MapCore: React.FC<MapCoreProps> = ({
     let newClickListener: ((event: any) => void) | null = null;
     let newSnapInteraction: Snap | null = null;
 
-    // Создаем коллекцию источников для привязки
-    const snapSources = new Collection<VectorSource<Feature>>(); // Уточненный тип для Collection
-    snapSources.push(barrierVectorSource.current); // Привязка к существующим барьерам
-    snapSources.push(mapBoundarySource.current); // Привязка к границам карты
-
     switch (activeInteraction) {
       case 'drawBarrier':
         newInteraction = new Draw({
@@ -662,7 +673,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           onFeatureAdd('barrier', coords);
           showSuccess('Барьер добавлен!');
         });
-        newSnapInteraction = new Snap({ source: snapSources as any, pixelTolerance: 10 }); // Приведение типа
+        newSnapInteraction = new Snap({ source: combinedSnapSource.current, pixelTolerance: 10 });
         break;
       case 'editBarrier':
         newInteraction = new Modify({
@@ -679,7 +690,7 @@ const MapCore: React.FC<MapCoreProps> = ({
           });
           showSuccess('Барьер обновлен!');
         });
-        newSnapInteraction = new Snap({ source: snapSources as any, pixelTolerance: 10 }); // Приведение типа
+        newSnapInteraction = new Snap({ source: combinedSnapSource.current, pixelTolerance: 10 });
         break;
       case 'drawZone':
         newInteraction = new Draw({
@@ -953,6 +964,7 @@ const MapCore: React.FC<MapCoreProps> = ({
     onRescaleDrawEnd,
     beaconPrice,
     antennaPrice,
+    combinedSnapSource.current, // Добавлено в зависимости
   ]);
 
   // Effect for pointermove to detect hovered features and segments
