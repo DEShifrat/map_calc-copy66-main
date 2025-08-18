@@ -44,7 +44,7 @@ const calculateAntennaRange = (height: number, angleDegrees: number): number => 
 // Factor for automatic antenna placement step to ensure 3-antenna overlap in a square grid.
 // This factor (2 / sqrt(5) approx 0.894) ensures that a point midway along an edge of a square
 // formed by 4 antennas is covered by at least 3.
-const THREE_ANTENNA_OVERLAP_FACTOR = 2 / Math.S_SQRT1_2;
+const THREE_ANTENNA_OVERLAP_FACTOR = 2 / Math.SQRT1_2;
 
 const AOAAntennas: React.FC = () => {
   const { state, actions } = useMap();
