@@ -540,7 +540,7 @@ const ZoneTracking: React.FC = () => {
                   <Input
                     id="zoneSize"
                     type="number"
-                    value={zoneSizeInput}
+                    value={zoneSizeInput === 0 ? '' : zoneSizeInput}
                     onChange={(e) => setZoneSizeInput(Number(e.target.value))}
                     step="0.1" // Разрешаем десятичные значения
                     // min="1" удален, так как валидация уже есть в handleAutoCalculateZones
@@ -578,7 +578,7 @@ const ZoneTracking: React.FC = () => {
                     <Input
                       id="beaconPrice"
                       type="number"
-                      value={beaconPrice}
+                      value={beaconPrice === 0 ? '' : beaconPrice}
                       onChange={(e) => actions.setBeaconPrice(Number(e.target.value))}
                       min="0"
                       step="0.01" // Разрешаем десятичные значения для цены
@@ -589,7 +589,7 @@ const ZoneTracking: React.FC = () => {
                     <Input
                       id="antennaPrice"
                       type="number"
-                      value={antennaPrice}
+                      value={antennaPrice === 0 ? '' : antennaPrice}
                       onChange={(e) => actions.setAntennaPrice(Number(e.target.value))}
                       min="0"
                       step="0.01" // Разрешаем десятичные значения для цены
@@ -600,7 +600,7 @@ const ZoneTracking: React.FC = () => {
                     <Input
                       id="cablePricePerMeter"
                       type="number"
-                      value={cablePricePerMeter}
+                      value={cablePricePerMeter === 0 ? '' : cablePricePerMeter}
                       onChange={(e) => actions.setCablePricePerMeter(Number(e.target.value))}
                       min="0"
                       step="0.01" // Разрешаем десятичные значения для цены

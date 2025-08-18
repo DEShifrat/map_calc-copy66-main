@@ -119,7 +119,7 @@ const Index = () => {
               <Input
                 id="mapWidth"
                 type="number"
-                value={mapWidthInput}
+                value={mapWidthInput === 0 ? '' : mapWidthInput}
                 onChange={(e) => setMapWidthInput(Number(e.target.value))}
                 step="0.1" // Разрешаем десятичные значения
               />
@@ -129,7 +129,7 @@ const Index = () => {
               <Input
                 id="mapHeight"
                 type="number"
-                value={mapHeightInput}
+                value={mapHeightInput === 0 ? '' : mapHeightInput}
                 onChange={(e) => setMapHeightInput(Number(e.target.value))}
                 step="0.1" // Разрешаем десятичные значения
               />

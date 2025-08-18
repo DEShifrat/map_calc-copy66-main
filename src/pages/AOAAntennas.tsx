@@ -44,7 +44,7 @@ const calculateAntennaRange = (height: number, angleDegrees: number): number => 
 // Factor for automatic antenna placement step to ensure 3-antenna overlap in a square grid.
 // This factor (2 / sqrt(5) approx 0.894) ensures that a point midway along an edge of a square
 // formed by 4 antennas is covered by at least 3.
-const THREE_ANTENNA_OVERLAP_FACTOR = 2 / Math.sqrt(5);
+const THREE_ANTENNA_OVERLAP_FACTOR = 2 / Math.S_SQRT1_2;
 
 const AOAAntennas: React.FC = () => {
   const { state, actions } = useMap();
@@ -657,7 +657,7 @@ const AOAAntennas: React.FC = () => {
                     <Input
                       id="defaultAntennaHeight"
                       type="number"
-                      value={defaultAntennaHeightInput}
+                      value={defaultAntennaHeightInput === 0 ? '' : defaultAntennaHeightInput}
                       onChange={(e) => setDefaultAntennaHeightInput(Number(e.target.value))}
                       step="0.1" // Разрешаем десятичные значения
                       // min="0.1" удален, так как валидация уже есть в handleAutoCalculateAntennas
@@ -668,7 +668,7 @@ const AOAAntennas: React.FC = () => {
                     <Input
                       id="defaultAntennaAngle"
                       type="number"
-                      value={defaultAntennaAngleInput}
+                      value={defaultAntennaAngleInput === 0 ? '' : defaultAntennaAngleInput}
                       onChange={(e) => setDefaultAntennaAngleInput(Number(e.target.value))}
                       min="0"
                       max="90"
@@ -715,7 +715,7 @@ const AOAAntennas: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Удаляет все антенны, коммутаторы и кабель-каналы с карты.</p>
+                      <p>Удаляет все антенны, коммутаторы и кабель-канал с карты.</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -729,7 +729,7 @@ const AOAAntennas: React.FC = () => {
                     <Input
                       id="beaconPrice"
                       type="number"
-                      value={beaconPrice}
+                      value={beaconPrice === 0 ? '' : beaconPrice}
                       onChange={(e) => actions.setBeaconPrice(Number(e.target.value))}
                       min="0"
                       step="0.01" // Разрешаем десятичные значения для цены
@@ -740,7 +740,7 @@ const AOAAntennas: React.FC = () => {
                     <Input
                       id="antennaPrice"
                       type="number"
-                      value={antennaPrice}
+                      value={antennaPrice === 0 ? '' : antennaPrice}
                       onChange={(e) => actions.setAntennaPrice(Number(e.target.value))}
                       min="0"
                       step="0.01" // Разрешаем десятичные значения для цены
@@ -751,7 +751,7 @@ const AOAAntennas: React.FC = () => {
                     <Input
                       id="cablePricePerMeter"
                       type="number"
-                      value={cablePricePerMeter}
+                      value={cablePricePerMeter === 0 ? '' : cablePricePerMeter}
                       onChange={(e) => actions.setCablePricePerMeter(Number(e.target.value))}
                       min="0"
                       step="0.01" // Разрешаем десятичные значения для цены
