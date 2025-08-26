@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input'; // Импорт Input
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"; // Импорт Tooltip
 import { showSuccess, showError } from '@/utils/toast';
 import { Map, View } from 'ol';
 import ImageLayer from 'ol/layer/Image';
@@ -300,6 +302,7 @@ const MapControls: React.FC<MapControlsProps> = ({
   onSaveConfiguration,
   cablePricePerMeter,
 }) => {
+  const [exportResolutionInput, setExportResolutionInput] = useState<number>(2); // Дефолтное значение 2
 
   const handleExportMapToPNG = () => {
     if (!mapImageSrc || mapWidthMeters <= 0 || mapHeightMeters <= 0) {
@@ -307,10 +310,12 @@ const MapControls: React.FC<MapControlsProps> = ({
       return;
     }
 
-    // !!! Измените это значение, чтобы уменьшить размер экспортируемого изображения !!!
-    const exportResolution = 2; // Pixels per meter for export (было 10)
-    // !!! --------------------------------------------------------------------- !!!
+    if (exportResolutionInput <= 0 || isNaN(exportResolutionInput)) {
+      showError('Разрешение экспорта должно быть положительным числом.');
+      return;
+    }
 
+    const exportResolution = exportResolutionInput; // Используем значение из инпута
     const exportWidthPx = mapWidthMeters * exportResolution;
     const exportHeightPx = mapHeightMeters * exportResolution;
 
@@ -318,8 +323,8 @@ const MapControls: React.FC<MapControlsProps> = ({
     const MAX_CANVAS_DIMENSION = 10000; // Максимальная сторона холста в пикселях
     if (exportWidthPx > MAX_CANVAS_DIMENSION || exportHeightPx > MAX_CANVAS_DIMENSION) {
       showError(
-        `Размеры экспортируемой карты (${exportWidthPx}x${exportHeightPx}px) слишком велики. ` +
-        `Попробуйте уменьшить размеры карты или изменить 'exportResolution' в коде.`
+        `Размеры экспортируемой карты (${exportWidthPx.toFixed(0)}x${exportHeightPx.toFixed(0)}px) слишком велики. ` +
+        `Попробуйте уменьшить разрешение экспорта или размеры карты.`
       );
       return;
     }
@@ -524,10 +529,29 @@ const MapControls: React.FC<MapControlsProps> = ({
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
       <div className="p-4 border rounded-md flex flex-wrap gap-2 justify-center">
         <h3 className="text-lg font-semibold w-full text-center mb-2">Управление конфигурацией:</h3>
-        <Button onClick={handleExportMapToPNG} variant="default">
+        <div className="w-full flex flex-col gap-2">
+          <Label htmlFor="exportResolution">Разрешение экспорта (пикс/метр)</Label>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Input
+                id="exportResolution"
+                type="number"
+                value={exportResolutionInput === 0 ? '' : exportResolutionInput}
+                onChange={(e) => setExportResolutionInput(Number(e.target.value))}
+                step="0.1"
+                min="0.1"
+                className="w-full"
+              />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Определяет количество пикселей на метр при экспорте карты в PNG. Меньшее значение уменьшит размер файла, но снизит детализацию.</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <Button onClick={handleExportMapToPNG} variant="default" className="w-full">
           Экспорт карты в PNG
         </Button>
-        <Button onClick={onSaveConfiguration} variant="default">
+        <Button onClick={onSaveConfiguration} variant="default" className="w-full">
           Сохранить конфигурацию
         </Button>
       </div>
