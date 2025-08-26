@@ -307,7 +307,10 @@ const MapControls: React.FC<MapControlsProps> = ({
       return;
     }
 
-    const exportResolution = 10; // Pixels per meter for export
+    // !!! Измените это значение, чтобы уменьшить размер экспортируемого изображения !!!
+    const exportResolution = 2; // Pixels per meter for export (было 10)
+    // !!! --------------------------------------------------------------------- !!!
+
     const exportWidthPx = mapWidthMeters * exportResolution;
     const exportHeightPx = mapHeightMeters * exportResolution;
 
