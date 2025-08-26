@@ -9,9 +9,27 @@ import TechnologySelection from "./pages/TechnologySelection";
 import ZoneTracking from "./pages/ZoneTracking";
 import BLEBeacons from "./pages/BLEBeacons";
 import AOAAntennas from "./pages/AOAAntennas";
-import { MapProvider } from "./context/MapContext"; // Импорт MapProvider
+import { MapProvider, useMap } from "./context/MapContext"; // Импорт MapProvider и useMap
+import React, { useEffect } from "react"; // Импорт useEffect
 
 const queryClient = new QueryClient();
+
+// Компонент для управления автосохранением
+const AutoSaveManager = () => {
+  const { actions } = useMap();
+
+  useEffect(() => {
+    // Сохраняем каждые 15 минут (900000 миллисекунд)
+    const intervalId = setInterval(() => {
+      actions.saveMapConfigurationToLocalStorage();
+    }, 900000); 
+
+    // Очищаем интервал при размонтировании компонента
+    return () => clearInterval(intervalId);
+  }, [actions]);
+
+  return null; // Этот компонент ничего не рендерит
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -20,6 +38,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <MapProvider> {/* Оборачиваем Routes в MapProvider */}
+          <AutoSaveManager /> {/* Добавляем компонент для автосохранения */}
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/technology-selection" element={<TechnologySelection />} />

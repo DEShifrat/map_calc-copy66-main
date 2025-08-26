@@ -94,6 +94,7 @@ type MapHistoryAction =
   | { type: 'UPDATE_BARRIER'; payload: { oldBarrierId: string; newCoords: Coordinate[][] } }; // Изменено: теперь принимает oldBarrierId (string) и newCoords (Coordinate[][])
 
 const MAX_HISTORY_SIZE = 20; // Максимальное количество состояний в истории
+const LOCAL_STORAGE_KEY = 'mapManagerConfig'; // Ключ для localStorage
 
 const defaultMapState: MapState = {
   mapImageSrc: null,
@@ -116,6 +117,39 @@ const defaultMapState: MapState = {
   showSwitches: true,
   showCableDucts: true,
   showCableDuctLengths: true,
+};
+
+// Функция для загрузки состояния из localStorage
+const loadStateFromLocalStorage = (): MapState => {
+  try {
+    const serializedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (serializedState === null) {
+      return defaultMapState;
+    }
+    const loadedConfig: SavedMapConfig = JSON.parse(serializedState);
+    // При загрузке из localStorage, сохраняем текущие состояния видимости слоев
+    // (если они были сохранены, иначе используем дефолтные)
+    return {
+      ...defaultMapState, // Начинаем с дефолтного состояния, чтобы убедиться, что все свойства присутствуют
+      mapImageSrc: loadedConfig.mapImageSrc,
+      mapWidthMeters: loadedConfig.mapWidthMeters,
+      mapHeightMeters: loadedConfig.mapHeightMeters,
+      beacons: loadedConfig.beacons || [],
+      antennas: loadedConfig.antennas || [],
+      barriers: loadedConfig.barriers || [],
+      zones: loadedConfig.zones || [],
+      switches: loadedConfig.switches || [],
+      cableDucts: loadedConfig.cableDucts?.map(duct => ({ ...duct, type: duct.type || 'main' })) || [],
+      cablePricePerMeter: loadedConfig.cablePricePerMeter ?? 1,
+      beaconPrice: loadedConfig.defaultBeaconPrice ?? 10,
+      antennaPrice: loadedConfig.defaultAntennaPrice ?? 50,
+      // Состояния видимости не сохраняются в SavedMapConfig, поэтому используем дефолтные
+      // или можно добавить их в SavedMapConfig, если нужно сохранять их между сессиями.
+    };
+  } catch (error) {
+    console.error("Ошибка при загрузке состояния из localStorage:", error);
+    return defaultMapState;
+  }
 };
 
 // Редьюсер для управления состоянием карты и историей
@@ -250,10 +284,10 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
   }
 };
 
-// Начальное состояние для редьюсера
+// Начальное состояние для редьюсера, загружаемое из localStorage
 const initialMapHistoryState: MapHistoryState = {
-  current: defaultMapState,
-  history: [defaultMapState],
+  current: loadStateFromLocalStorage(),
+  history: [loadStateFromLocalStorage()],
   historyIndex: 0,
 };
 
@@ -280,6 +314,7 @@ interface MapActions {
   toggleShowCableDuctLengths: () => void;
   resetMapData: () => void;
   loadMapConfiguration: (config: SavedMapConfig) => void;
+  saveMapConfigurationToLocalStorage: () => void; // Новое действие для сохранения в localStorage
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
@@ -315,6 +350,29 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     toggleShowCableDuctLengths: () => dispatch({ type: 'UPDATE_STATE', payload: { showCableDuctLengths: !historyState.current.showCableDuctLengths } }),
     resetMapData: () => dispatch({ type: 'RESET_MAP_DATA' }),
     loadMapConfiguration: (config) => dispatch({ type: 'LOAD_CONFIGURATION', payload: config }),
+    saveMapConfigurationToLocalStorage: () => {
+      try {
+        const configToSave = {
+          mapImageSrc: historyState.current.mapImageSrc,
+          mapWidthMeters: historyState.current.mapWidthMeters,
+          mapHeightMeters: historyState.current.mapHeightMeters,
+          beacons: historyState.current.beacons,
+          antennas: historyState.current.antennas,
+          barriers: historyState.current.barriers,
+          zones: historyState.current.zones,
+          switches: historyState.current.switches,
+          cableDucts: historyState.current.cableDucts,
+          cablePricePerMeter: historyState.current.cablePricePerMeter,
+          defaultBeaconPrice: historyState.current.beaconPrice,
+          defaultAntennaPrice: historyState.current.antennaPrice,
+        };
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(configToSave));
+        console.log('Конфигурация карты автоматически сохранена в localStorage.');
+      } catch (error) {
+        console.error('Ошибка при автоматическом сохранении в localStorage:', error);
+        // Можно добавить showWarning или showError здесь, но для автосохранения лучше быть менее навязчивым
+      }
+    },
     undo: () => dispatch({ type: 'UNDO' }),
     redo: () => dispatch({ type: 'REDO' }),
     canUndo: historyState.historyIndex > 0,

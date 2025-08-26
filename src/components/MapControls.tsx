@@ -88,7 +88,7 @@ interface MapControlsProps {
   cablePricePerMeter: number;
 }
 
-// --- Стили, определенные за пределами компонента для избежания проблем с инициализацией ---
+// --- Стили, определенные за пределами компонента для избежания проблем с инициализации ---
 const beaconStyle = new Style({
   image: new Icon({
     anchor: [0.5, 1],
@@ -307,10 +307,23 @@ const MapControls: React.FC<MapControlsProps> = ({
       return;
     }
 
-    const exportDiv = document.createElement('div');
     const exportResolution = 10; // Pixels per meter for export
-    exportDiv.style.width = `${mapWidthMeters * exportResolution}px`;
-    exportDiv.style.height = `${mapHeightMeters * exportResolution}px`;
+    const exportWidthPx = mapWidthMeters * exportResolution;
+    const exportHeightPx = mapHeightMeters * exportResolution;
+
+    // Добавляем проверку на слишком большой размер холста
+    const MAX_CANVAS_DIMENSION = 10000; // Максимальная сторона холста в пикселях
+    if (exportWidthPx > MAX_CANVAS_DIMENSION || exportHeightPx > MAX_CANVAS_DIMENSION) {
+      showError(
+        `Размеры экспортируемой карты (${exportWidthPx}x${exportHeightPx}px) слишком велики. ` +
+        `Попробуйте уменьшить размеры карты или изменить 'exportResolution' в коде.`
+      );
+      return;
+    }
+
+    const exportDiv = document.createElement('div');
+    exportDiv.style.width = `${exportWidthPx}px`;
+    exportDiv.style.height = `${exportHeightPx}px`;
     exportDiv.style.position = 'absolute';
     exportDiv.style.top = '-9999px';
     document.body.appendChild(exportDiv);
@@ -401,7 +414,7 @@ const MapControls: React.FC<MapControlsProps> = ({
         showSuccess('Карта успешно экспортирована в PNG!');
       } catch (error) {
         console.error('Ошибка при экспорте карты:', error);
-        showError('Ошибка при экспорте карты. Возможно, из-за ограничений безопасности браузера (CORS) для изображений.');
+        showError('Ошибка при экспорте карты. Возможно, из-за ограничений безопасности браузера (CORS) для изображений или слишком большого размера холста.');
       } finally {
         exportMap.setTarget(undefined);
         document.body.removeChild(exportDiv);
