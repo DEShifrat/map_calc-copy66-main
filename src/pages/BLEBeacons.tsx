@@ -56,38 +56,41 @@ const BLEBeacons: React.FC = () => {
   const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
     if (type === 'beacon') {
       actions.setBeacons([...beacons, featureData]);
+      showSuccess('Маяк добавлен вручную!');
     } else if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
-      setActiveInteraction(null);
-    } else {
-      setActiveInteraction(null);
+      showSuccess('Барьер добавлен!');
     }
+    // Оставляем активное взаимодействие, чтобы можно было добавлять несколько объектов
   }, [actions, beacons, barriers]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[] | Coordinate[][]) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.map(b => b.id === id ? { ...b, position: newPosition as Coordinate } : b));
+      showSuccess('Позиция маяка обновлена!');
     } else if (type === 'barrier') {
-      // Для барьеров 'id' - это JSON.stringify(oldCoords), а newPosition - это newCoords
-      const oldBarrierId = id; // id уже является JSON.stringify(oldCoords)
+      const oldBarrierId = id;
       actions.updateBarrier(oldBarrierId, newPosition as Coordinate[][]);
-    } else {
-      setActiveInteraction(null);
+      showSuccess('Барьер обновлен!');
     }
+    // Оставляем активное взаимодействие
   }, [actions, beacons]);
 
   const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.filter(b => b.id !== id));
+      showSuccess('Маяк удален!');
     } else if (type === 'barrier') {
       actions.setBarriers(barriers.filter(b => JSON.stringify(b) !== id));
+      showSuccess('Барьер удален!');
     }
+    // Оставляем активное взаимодействие
   }, [actions, beacons, barriers]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {
     setDrawnLengthForRescale(drawnLength);
     setIsRescaleDialogOpen(true);
-    setActiveInteraction(null);
+    setActiveInteraction(null); // Отключаем режим ремасштабирования после завершения
   }, []);
 
   const handleRescaleConfirm = useCallback((realWorldLength: number) => {

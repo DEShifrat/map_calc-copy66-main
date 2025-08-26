@@ -54,56 +54,68 @@ const ZoneTracking: React.FC = () => {
   const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
     if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
-      setActiveInteraction(null); // Deactivate after one barrier draw
+      showSuccess('Барьер добавлен!');
     } else if (type === 'zone') {
       actions.setZones([...zones, featureData]);
-      setActiveInteraction(null); // Deactivate after one zone draw
+      showSuccess('Зона добавлена вручную!');
     } else if (type === 'switch') {
       actions.setSwitches([...switches, featureData]);
-      // Do NOT deactivate for manual switch placement
+      showSuccess('Коммутатор добавлен вручную!');
     } else if (type === 'cableDuct') {
       actions.setCableDucts([...cableDucts, featureData]);
-      setActiveInteraction(null); // Deactivate after one cable duct draw
+      showSuccess('Кабель-канал добавлен!');
     }
+    // Оставляем активное взаимодействие, чтобы можно было добавлять несколько объектов
   }, [actions, barriers, zones, switches, cableDucts]);
 
   const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[] | Coordinate[][]) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.map(b => b.id === id ? { ...b, position: newPosition as Coordinate } : b));
+      showSuccess('Позиция маяка обновлена!');
     } else if (type === 'antenna') {
       actions.setAntennas(antennas.map(a => a.id === id ? { ...a, position: newPosition as Coordinate } : a));
+      showSuccess('Позиция антенны обновлена!');
     } else if (type === 'barrier') {
-      const oldBarrierId = id; // id уже является JSON.stringify(oldCoords)
+      const oldBarrierId = id;
       actions.updateBarrier(oldBarrierId, newPosition as Coordinate[][]);
+      showSuccess('Барьер обновлен!');
     } else if (type === 'switch') {
       actions.setSwitches(switches.map(s => s.id === id ? { ...s, position: newPosition as Coordinate } : s));
+      showSuccess('Позиция коммутатора обновлена!');
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.map(c => c.id === id ? { ...c, path: newPosition as Coordinate[] } : c));
+      showSuccess('Кабель-канал обновлен!');
     }
-    setActiveInteraction(null);
+    // Оставляем активное взаимодействие
   }, [actions, beacons, antennas, switches, cableDucts]);
 
   const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.filter(b => b.id !== id));
+      showSuccess('Маяк удален!');
     } else if (type === 'antenna') {
       actions.setAntennas(antennas.filter(a => a.id !== id));
+      showSuccess('Антенна удалена!');
     } else if (type === 'zone') {
       actions.setZones(zones.filter(z => z.id !== id));
+      showSuccess('Зона удалена!');
     } else if (type === 'barrier') {
       actions.setBarriers(barriers.filter(b => JSON.stringify(b) !== id));
+      showSuccess('Барьер удален!');
     } else if (type === 'switch') {
       actions.setSwitches(switches.filter(s => s.id !== id));
+      showSuccess('Коммутатор удален!');
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.filter(c => c.id !== id));
+      showSuccess('Кабель-канал удален!');
     }
-    // Do NOT deactivate interaction for deletion
+    // Оставляем активное взаимодействие
   }, [actions, beacons, antennas, zones, barriers, switches, cableDucts]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {
     setDrawnLengthForRescale(drawnLength);
     setIsRescaleDialogOpen(true);
-    setActiveInteraction(null);
+    setActiveInteraction(null); // Отключаем режим ремасштабирования после завершения
   }, []);
 
   const handleRescaleConfirm = useCallback((realWorldLength: number) => {
