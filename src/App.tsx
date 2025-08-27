@@ -9,24 +9,40 @@ import TechnologySelection from "./pages/TechnologySelection";
 import ZoneTracking from "./pages/ZoneTracking";
 import BLEBeacons from "./pages/BLEBeacons";
 import AOAAntennas from "./pages/AOAAntennas";
-import { MapProvider, useMap } from "./context/MapContext"; // Импорт MapProvider и useMap
-import React, { useEffect } from "react"; // Импорт useEffect
+import { MapProvider, useMap } from "./context/MapContext";
+import React, { useEffect, useRef } from "react"; // Импорт useRef
 
 const queryClient = new QueryClient();
 
 // Компонент для управления автосохранением
 const AutoSaveManager = () => {
-  const { actions } = useMap();
+  const { state, actions } = useMap();
+  const { isAutoSaveEnabled, autoSaveIntervalMinutes } = state;
+  const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Сохраняем каждые 15 минут (900000 миллисекунд)
-    const intervalId = setInterval(() => {
-      actions.saveMapConfigurationToLocalStorage();
-    }, 900000); 
+    // Очищаем предыдущий интервал, если он существует
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
 
-    // Очищаем интервал при размонтировании компонента
-    return () => clearInterval(intervalId);
-  }, [actions]);
+    // Устанавливаем новый интервал, если автосохранение включено и интервал корректен
+    if (isAutoSaveEnabled && autoSaveIntervalMinutes > 0) {
+      const intervalId = setInterval(() => {
+        actions.saveMapConfigurationToLocalStorage();
+      }, autoSaveIntervalMinutes * 60 * 1000); // Минуты в миллисекунды
+      intervalRef.current = intervalId as unknown as number; // Приведение типа для setInterval
+    }
+
+    // Очищаем интервал при размонтировании компонента или изменении зависимостей
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [isAutoSaveEnabled, autoSaveIntervalMinutes, actions]);
 
   return null; // Этот компонент ничего не рендерит
 };

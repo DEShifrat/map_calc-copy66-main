@@ -58,6 +58,9 @@ interface MapState {
   showSwitches: boolean;
   showCableDucts: boolean;
   showCableDuctLengths: boolean;
+  // Auto-save settings
+  isAutoSaveEnabled: boolean;
+  autoSaveIntervalMinutes: number;
 }
 
 // Интерфейс для сохраненной конфигурации
@@ -74,6 +77,12 @@ interface SavedMapConfig {
   cablePricePerMeter?: number;
   defaultBeaconPrice?: number;
   defaultAntennaPrice?: number;
+}
+
+// Интерфейс для сохраненных настроек (для localStorage)
+interface SavedPreferences {
+  isAutoSaveEnabled: boolean;
+  autoSaveIntervalMinutes: number;
 }
 
 // Состояние для управления историей
@@ -95,6 +104,7 @@ type MapHistoryAction =
 
 const MAX_HISTORY_SIZE = 20; // Максимальное количество состояний в истории
 const LOCAL_STORAGE_KEY = 'mapManagerConfig'; // Ключ для localStorage
+const PREFERENCES_LOCAL_STORAGE_KEY = 'mapManagerPreferences'; // Ключ для настроек в localStorage
 
 const defaultMapState: MapState = {
   mapImageSrc: null,
@@ -117,34 +127,46 @@ const defaultMapState: MapState = {
   showSwitches: true,
   showCableDucts: true,
   showCableDuctLengths: true,
+  isAutoSaveEnabled: false, // Default to off
+  autoSaveIntervalMinutes: 15, // Default to 15 minutes
 };
 
 // Функция для загрузки состояния из localStorage
 const loadStateFromLocalStorage = (): MapState => {
   try {
-    const serializedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (serializedState === null) {
-      return defaultMapState;
+    const serializedConfig = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const serializedPreferences = localStorage.getItem(PREFERENCES_LOCAL_STORAGE_KEY);
+
+    let loadedConfig: SavedMapConfig | null = null;
+    if (serializedConfig) {
+      loadedConfig = JSON.parse(serializedConfig);
     }
-    const loadedConfig: SavedMapConfig = JSON.parse(serializedState);
-    // При загрузке из localStorage, сохраняем текущие состояния видимости слоев
-    // (если они были сохранены, иначе используем дефолтные)
+
+    let loadedPreferences: SavedPreferences | null = null;
+    if (serializedPreferences) {
+      loadedPreferences = JSON.parse(serializedPreferences);
+    }
+
     return {
       ...defaultMapState, // Начинаем с дефолтного состояния, чтобы убедиться, что все свойства присутствуют
-      mapImageSrc: loadedConfig.mapImageSrc,
-      mapWidthMeters: loadedConfig.mapWidthMeters,
-      mapHeightMeters: loadedConfig.mapHeightMeters,
-      beacons: loadedConfig.beacons || [],
-      antennas: loadedConfig.antennas || [],
-      barriers: loadedConfig.barriers || [],
-      zones: loadedConfig.zones || [],
-      switches: loadedConfig.switches || [],
-      cableDucts: loadedConfig.cableDucts?.map(duct => ({ ...duct, type: duct.type || 'main' })) || [],
-      cablePricePerMeter: loadedConfig.cablePricePerMeter ?? 1,
-      beaconPrice: loadedConfig.defaultBeaconPrice ?? 10,
-      antennaPrice: loadedConfig.defaultAntennaPrice ?? 50,
-      // Состояния видимости не сохраняются в SavedMapConfig, поэтому используем дефолтные
-      // или можно добавить их в SavedMapConfig, если нужно сохранять их между сессиями.
+      ...(loadedConfig ? {
+        mapImageSrc: loadedConfig.mapImageSrc,
+        mapWidthMeters: loadedConfig.mapWidthMeters,
+        mapHeightMeters: loadedConfig.mapHeightMeters,
+        beacons: loadedConfig.beacons || [],
+        antennas: loadedConfig.antennas || [],
+        barriers: loadedConfig.barriers || [],
+        zones: loadedConfig.zones || [],
+        switches: loadedConfig.switches || [],
+        cableDucts: loadedConfig.cableDucts?.map(duct => ({ ...duct, type: duct.type || 'main' })) || [],
+        cablePricePerMeter: loadedConfig.cablePricePerMeter ?? 1,
+        beaconPrice: loadedConfig.defaultBeaconPrice ?? 10,
+        antennaPrice: loadedConfig.defaultAntennaPrice ?? 50,
+      } : {}),
+      ...(loadedPreferences ? {
+        isAutoSaveEnabled: loadedPreferences.isAutoSaveEnabled,
+        autoSaveIntervalMinutes: loadedPreferences.autoSaveIntervalMinutes,
+      } : {}),
     };
   } catch (error) {
     console.error("Ошибка при загрузке состояния из localStorage:", error);
@@ -192,9 +214,15 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
       return state;
     }
     case 'RESET_MAP_DATA': {
+      // При сбросе данных карты, сохраняем настройки автосохранения
+      const resetState = {
+        ...defaultMapState,
+        isAutoSaveEnabled: state.current.isAutoSaveEnabled,
+        autoSaveIntervalMinutes: state.current.autoSaveIntervalMinutes,
+      };
       return {
-        current: defaultMapState,
-        history: [defaultMapState],
+        current: resetState,
+        history: [resetState],
         historyIndex: 0,
       };
     }
@@ -214,7 +242,7 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
         cablePricePerMeter: config.cablePricePerMeter ?? 1,
         beaconPrice: config.defaultBeaconPrice ?? 10,
         antennaPrice: config.defaultAntennaPrice ?? 50,
-        // Сохраняем текущие состояния видимости слоев
+        // Сохраняем текущие состояния видимости слоев и настроек автосохранения
         showBeacons: state.current.showBeacons,
         showAntennas: state.current.showAntennas,
         showBarriers: state.current.showBarriers,
@@ -223,6 +251,8 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
         showSwitches: state.current.showSwitches,
         showCableDucts: state.current.showCableDucts,
         showCableDuctLengths: state.current.showCableDuctLengths,
+        isAutoSaveEnabled: state.current.isAutoSaveEnabled,
+        autoSaveIntervalMinutes: state.current.autoSaveIntervalMinutes,
       };
       return {
         current: loadedState,
@@ -315,12 +345,15 @@ interface MapActions {
   resetMapData: () => void;
   loadMapConfiguration: (config: SavedMapConfig) => void;
   saveMapConfigurationToLocalStorage: () => void; // Новое действие для сохранения в localStorage
+  savePreferencesToLocalStorage: () => void; // Новое действие для сохранения настроек в localStorage
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
   deleteCableDuctSegment: (id: string, segmentIndex: number) => void;
   updateBarrier: (oldBarrierId: string, newCoords: Coordinate[][]) => void; // Изменено: теперь принимает oldBarrierId (string) и newCoords (Coordinate[][])
+  toggleAutoSave: () => void;
+  setAutoSaveInterval: (interval: number) => void;
 }
 
 const MapContext = createContext<{ state: MapState; actions: MapActions } | undefined>(undefined);
@@ -352,8 +385,8 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     loadMapConfiguration: (config) => dispatch({ type: 'LOAD_CONFIGURATION', payload: config }),
     saveMapConfigurationToLocalStorage: () => {
       try {
-        const configToSave = {
-          mapImageSrc: historyState.current.mapImageSrc,
+        const configToSave: SavedMapConfig = {
+          mapImageSrc: historyState.current.mapImageSrc || '', // Ensure non-null for saving
           mapWidthMeters: historyState.current.mapWidthMeters,
           mapHeightMeters: historyState.current.mapHeightMeters,
           beacons: historyState.current.beacons,
@@ -373,13 +406,32 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         // Можно добавить showWarning или showError здесь, но для автосохранения лучше быть менее навязчивым
       }
     },
+    savePreferencesToLocalStorage: () => {
+      try {
+        const preferencesToSave: SavedPreferences = {
+          isAutoSaveEnabled: historyState.current.isAutoSaveEnabled,
+          autoSaveIntervalMinutes: historyState.current.autoSaveIntervalMinutes,
+        };
+        localStorage.setItem(PREFERENCES_LOCAL_STORAGE_KEY, JSON.stringify(preferencesToSave));
+        console.log('Настройки автосохранения сохранены в localStorage.');
+      } catch (error) {
+        console.error('Ошибка при сохранении настроек автосохранения в localStorage:', error);
+      }
+    },
     undo: () => dispatch({ type: 'UNDO' }),
     redo: () => dispatch({ type: 'REDO' }),
     canUndo: historyState.historyIndex > 0,
     canRedo: historyState.historyIndex < historyState.history.length - 1,
     deleteCableDuctSegment: (id, segmentIndex) => dispatch({ type: 'DELETE_CABLE_DUCT_SEGMENT', payload: { id, segmentIndex } }),
     updateBarrier: (oldBarrierId, newCoords) => dispatch({ type: 'UPDATE_BARRIER', payload: { oldBarrierId, newCoords } }), // Изменено
+    toggleAutoSave: () => dispatch({ type: 'UPDATE_STATE', payload: { isAutoSaveEnabled: !historyState.current.isAutoSaveEnabled } }),
+    setAutoSaveInterval: (interval) => dispatch({ type: 'UPDATE_STATE', payload: { autoSaveIntervalMinutes: interval } }),
   }), [historyState]);
+
+  // Эффект для сохранения настроек автосохранения при их изменении
+  React.useEffect(() => {
+    actions.savePreferencesToLocalStorage();
+  }, [historyState.current.isAutoSaveEnabled, historyState.current.autoSaveIntervalMinutes, actions]);
 
   return (
     <MapContext.Provider value={{ state: historyState.current, actions }}>
