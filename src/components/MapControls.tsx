@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input'; // Импорт Input
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"; // Импорт Tooltip
+import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { showSuccess, showError } from '@/utils/toast';
 import { Map, View } from 'ol';
 import ImageLayer from 'ol/layer/Image';
@@ -25,6 +25,7 @@ import CircleStyle from 'ol/style/Circle';
 import Text from 'ol/style/Text';
 import { Coordinate } from 'ol/coordinate';
 import { FeatureLike } from 'ol/Feature';
+import { HelpCircle } from 'lucide-react'; // Импорт иконки HelpCircle
 
 // Интерфейсы для данных карты (повторяются из MapContext для ясности)
 interface Beacon {
@@ -530,23 +531,32 @@ const MapControls: React.FC<MapControlsProps> = ({
       <div className="p-4 border rounded-md flex flex-wrap gap-2 justify-center">
         <h3 className="text-lg font-semibold w-full text-center mb-2">Управление конфигурацией:</h3>
         <div className="w-full flex flex-col gap-2">
-          <Label htmlFor="exportResolution">Разрешение экспорта (пикс/метр)</Label>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Input
-                id="exportResolution"
-                type="number"
-                value={exportResolutionInput === 0 ? '' : exportResolutionInput}
-                onChange={(e) => setExportResolutionInput(Number(e.target.value))}
-                step="0.1"
-                min="0.1"
-                className="w-full"
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Определяет количество пикселей на метр при экспорте карты в PNG. Меньшее значение уменьшит размер файла, но снизит детализацию.</p>
-            </TooltipContent>
-          </Tooltip>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="exportResolution">Разрешение экспорта (пикс/метр)</Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-gray-500 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Определяет количество пикселей на каждый метр карты при экспорте в PNG.</p>
+                <p className="mt-1">
+                  Большее значение = выше детализация, но больше размер файла и выше риск ошибки.
+                  Меньшее значение = ниже детализация, но меньше размер файла и надежнее экспорт.
+                </p>
+                <p className="mt-1 font-semibold">Рекомендуемые значения: 1, 2, 3, 4, 5.</p>
+                <p>Максимальное значение зависит от размера вашей карты и возможностей браузера.</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <Input
+            id="exportResolution"
+            type="number"
+            value={exportResolutionInput === 0 ? '' : exportResolutionInput}
+            onChange={(e) => setExportResolutionInput(Number(e.target.value))}
+            step="0.1"
+            min="0.1"
+            className="w-full"
+          />
         </div>
         <Button onClick={handleExportMapToPNG} variant="default" className="w-full">
           Экспорт карты в PNG
