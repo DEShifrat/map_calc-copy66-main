@@ -18,9 +18,9 @@ interface Antenna {
   price?: number;
 }
 
-export interface Zone { // Добавлен export
+export interface Zone {
   id: string;
-  polygon: Coordinate[][]; // Изменено с Coordinate[][][] на Coordinate[][]
+  polygon: Coordinate[][];
   beaconCount: number;
 }
 
@@ -35,6 +35,13 @@ interface CableDuct {
   type: 'main' | 'connection';
 }
 
+// НОВАЯ СУЩНОСТЬ: Зональная антенна
+interface ZoneAntenna {
+  id: string;
+  position: Coordinate;
+  price?: number;
+}
+
 // Интерфейс для состояния карты
 interface MapState {
   mapImageSrc: string | null;
@@ -42,10 +49,11 @@ interface MapState {
   mapHeightMeters: number;
   beacons: Beacon[];
   antennas: Antenna[];
-  barriers: Coordinate[][][]; // Изменено с Coordinate[][][][] на Coordinate[][][]
+  barriers: Coordinate[][][];
   zones: Zone[];
   switches: Switch[];
   cableDucts: CableDuct[];
+  zoneAntennas: ZoneAntenna[]; // Добавлено
   beaconPrice: number;
   antennaPrice: number;
   cablePricePerMeter: number;
@@ -58,6 +66,7 @@ interface MapState {
   showSwitches: boolean;
   showCableDucts: boolean;
   showCableDuctLengths: boolean;
+  showZoneAntennas: boolean; // Добавлено
   // Auto-save settings
   isAutoSaveEnabled: boolean;
   autoSaveIntervalMinutes: number;
@@ -70,10 +79,11 @@ interface SavedMapConfig {
   mapHeightMeters: number;
   beacons: Beacon[];
   antennas: Antenna[];
-  barriers: Coordinate[][][]; // Изменено с Coordinate[][][][] на Coordinate[][][]
+  barriers: Coordinate[][][];
   zones: Zone[];
   switches: Switch[];
   cableDucts: CableDuct[];
+  zoneAntennas: ZoneAntenna[]; // Добавлено
   cablePricePerMeter?: number;
   defaultBeaconPrice?: number;
   defaultAntennaPrice?: number;
@@ -100,7 +110,7 @@ type MapHistoryAction =
   | { type: 'RESET_MAP_DATA' }
   | { type: 'LOAD_CONFIGURATION'; payload: SavedMapConfig }
   | { type: 'DELETE_CABLE_DUCT_SEGMENT'; payload: { id: string; segmentIndex: number } }
-  | { type: 'UPDATE_BARRIER'; payload: { oldBarrierId: string; newCoords: Coordinate[][] } }; // Изменено: теперь принимает oldBarrierId (string) и newCoords (Coordinate[][])
+  | { type: 'UPDATE_BARRIER'; payload: { oldBarrierId: string; newCoords: Coordinate[][] } };
 
 const MAX_HISTORY_SIZE = 20; // Максимальное количество состояний в истории
 const LOCAL_STORAGE_KEY = 'mapManagerConfig'; // Ключ для localStorage
@@ -116,6 +126,7 @@ const defaultMapState: MapState = {
   zones: [],
   switches: [],
   cableDucts: [],
+  zoneAntennas: [], // Инициализация
   beaconPrice: 10,
   antennaPrice: 50,
   cablePricePerMeter: 1,
@@ -127,6 +138,7 @@ const defaultMapState: MapState = {
   showSwitches: true,
   showCableDucts: true,
   showCableDuctLengths: true,
+  showZoneAntennas: true, // Инициализация
   isAutoSaveEnabled: false, // Default to off
   autoSaveIntervalMinutes: 15, // Default to 15 minutes
 };
@@ -159,6 +171,7 @@ const loadStateFromLocalStorage = (): MapState => {
         zones: loadedConfig.zones || [],
         switches: loadedConfig.switches || [],
         cableDucts: loadedConfig.cableDucts?.map(duct => ({ ...duct, type: duct.type || 'main' })) || [],
+        zoneAntennas: loadedConfig.zoneAntennas || [], // Загрузка зональных антенн
         cablePricePerMeter: loadedConfig.cablePricePerMeter ?? 1,
         beaconPrice: loadedConfig.defaultBeaconPrice ?? 10,
         antennaPrice: loadedConfig.defaultAntennaPrice ?? 50,
@@ -239,6 +252,7 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
         zones: config.zones || [],
         switches: config.switches || [],
         cableDucts: config.cableDucts?.map(duct => ({ ...duct, type: duct.type || 'main' })) || [],
+        zoneAntennas: config.zoneAntennas || [], // Загрузка зональных антенн
         cablePricePerMeter: config.cablePricePerMeter ?? 1,
         beaconPrice: config.defaultBeaconPrice ?? 10,
         antennaPrice: config.defaultAntennaPrice ?? 50,
@@ -251,6 +265,7 @@ const mapHistoryReducer = (state: MapHistoryState, action: MapHistoryAction): Ma
         showSwitches: state.current.showSwitches,
         showCableDucts: state.current.showCableDucts,
         showCableDuctLengths: state.current.showCableDuctLengths,
+        showZoneAntennas: state.current.showZoneAntennas, // Сохраняем состояние видимости
         isAutoSaveEnabled: state.current.isAutoSaveEnabled,
         autoSaveIntervalMinutes: state.current.autoSaveIntervalMinutes,
       };
@@ -331,6 +346,7 @@ interface MapActions {
   setZones: (zones: Zone[]) => void;
   setSwitches: (switches: Switch[]) => void;
   setCableDucts: (cableDucts: CableDuct[]) => void;
+  setZoneAntennas: (zoneAntennas: ZoneAntenna[]) => void; // Добавлено
   setBeaconPrice: (price: number) => void;
   setAntennaPrice: (price: number) => void;
   setCablePricePerMeter: (price: number) => void;
@@ -342,6 +358,7 @@ interface MapActions {
   toggleShowSwitches: () => void;
   toggleShowCableDucts: () => void;
   toggleShowCableDuctLengths: () => void;
+  toggleShowZoneAntennas: () => void; // Добавлено
   resetMapData: () => void;
   loadMapConfiguration: (config: SavedMapConfig) => void;
   saveMapConfigurationToLocalStorage: () => void; // Новое действие для сохранения в localStorage
@@ -351,7 +368,7 @@ interface MapActions {
   canUndo: boolean;
   canRedo: boolean;
   deleteCableDuctSegment: (id: string, segmentIndex: number) => void;
-  updateBarrier: (oldBarrierId: string, newCoords: Coordinate[][]) => void; // Изменено: теперь принимает oldBarrierId (string) и newCoords (Coordinate[][])
+  updateBarrier: (oldBarrierId: string, newCoords: Coordinate[][]) => void;
   toggleAutoSave: () => void;
   setAutoSaveInterval: (interval: number) => void;
 }
@@ -370,6 +387,7 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setZones: (zones) => dispatch({ type: 'UPDATE_STATE', payload: { zones } }),
     setSwitches: (switches) => dispatch({ type: 'UPDATE_STATE', payload: { switches } }),
     setCableDucts: (cableDucts) => dispatch({ type: 'UPDATE_STATE', payload: { cableDucts } }),
+    setZoneAntennas: (zoneAntennas) => dispatch({ type: 'UPDATE_STATE', payload: { zoneAntennas } }), // Добавлено
     setBeaconPrice: (price) => dispatch({ type: 'UPDATE_STATE', payload: { beaconPrice: price } }),
     setAntennaPrice: (price) => dispatch({ type: 'UPDATE_STATE', payload: { antennaPrice: price } }),
     setCablePricePerMeter: (price) => dispatch({ type: 'UPDATE_STATE', payload: { cablePricePerMeter: price } }),
@@ -381,6 +399,7 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     toggleShowSwitches: () => dispatch({ type: 'UPDATE_STATE', payload: { showSwitches: !historyState.current.showSwitches } }),
     toggleShowCableDucts: () => dispatch({ type: 'UPDATE_STATE', payload: { showCableDucts: !historyState.current.showCableDucts } }),
     toggleShowCableDuctLengths: () => dispatch({ type: 'UPDATE_STATE', payload: { showCableDuctLengths: !historyState.current.showCableDuctLengths } }),
+    toggleShowZoneAntennas: () => dispatch({ type: 'UPDATE_STATE', payload: { showZoneAntennas: !historyState.current.showZoneAntennas } }), // Добавлено
     resetMapData: () => dispatch({ type: 'RESET_MAP_DATA' }),
     loadMapConfiguration: (config) => dispatch({ type: 'LOAD_CONFIGURATION', payload: config }),
     saveMapConfigurationToLocalStorage: () => {
@@ -395,6 +414,7 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           zones: historyState.current.zones,
           switches: historyState.current.switches,
           cableDucts: historyState.current.cableDucts,
+          zoneAntennas: historyState.current.zoneAntennas, // Сохранение зональных антенн
           cablePricePerMeter: historyState.current.cablePricePerMeter,
           defaultBeaconPrice: historyState.current.beaconPrice,
           defaultAntennaPrice: historyState.current.antennaPrice,
@@ -423,7 +443,7 @@ export const MapProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     canUndo: historyState.historyIndex > 0,
     canRedo: historyState.historyIndex < historyState.history.length - 1,
     deleteCableDuctSegment: (id, segmentIndex) => dispatch({ type: 'DELETE_CABLE_DUCT_SEGMENT', payload: { id, segmentIndex } }),
-    updateBarrier: (oldBarrierId, newCoords) => dispatch({ type: 'UPDATE_BARRIER', payload: { oldBarrierId, newCoords } }), // Изменено
+    updateBarrier: (oldBarrierId, newCoords) => dispatch({ type: 'UPDATE_BARRIER', payload: { oldBarrierId, newCoords } }),
     toggleAutoSave: () => dispatch({ type: 'UPDATE_STATE', payload: { isAutoSaveEnabled: !historyState.current.isAutoSaveEnabled } }),
     setAutoSaveInterval: (interval) => dispatch({ type: 'UPDATE_STATE', payload: { autoSaveIntervalMinutes: interval } }),
   }), [historyState]);

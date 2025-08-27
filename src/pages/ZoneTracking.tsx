@@ -11,11 +11,12 @@ import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
 import Polygon from 'ol/geom/Polygon';
+import { isPointInsideAnyBarrier } from '@/lib/utils'; // Импорт isPointInsideAnyBarrier
 import {
-  Square, Trash2, Target, Router, Pencil, Cable, Ruler, X, Undo2, Redo2
+  Square, Trash2, Target, Router, Pencil, Cable, Ruler, X, Undo2, Redo2, Antenna as AntennaIcon // Импорт AntennaIcon
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import OnboardingDialog from '@/components/OnboardingDialog'; // Импорт OnboardingDialog
+import OnboardingDialog from '@/components/OnboardingDialog';
 
 const ZoneTracking: React.FC = () => {
   const { state, actions } = useMap();
@@ -29,6 +30,7 @@ const ZoneTracking: React.FC = () => {
     zones,
     switches,
     cableDucts,
+    zoneAntennas, // Добавлено
     showBeacons,
     showAntennas,
     showBarriers,
@@ -37,6 +39,7 @@ const ZoneTracking: React.FC = () => {
     showSwitches,
     showCableDucts,
     showCableDuctLengths,
+    showZoneAntennas, // Добавлено
     beaconPrice,
     antennaPrice,
     cablePricePerMeter,
@@ -51,7 +54,7 @@ const ZoneTracking: React.FC = () => {
     setActiveInteraction(prev => (prev === interaction ? null : interaction));
   };
 
-  const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
+  const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct' | 'zoneAntenna', featureData: any) => {
     if (type === 'barrier') {
       actions.setBarriers([...barriers, featureData]);
       showSuccess('Барьер добавлен!');
@@ -64,11 +67,14 @@ const ZoneTracking: React.FC = () => {
     } else if (type === 'cableDuct') {
       actions.setCableDucts([...cableDucts, featureData]);
       showSuccess('Кабель-канал добавлен!');
+    } else if (type === 'zoneAntenna') { // Обработка добавления зональной антенны
+      actions.setZoneAntennas([...zoneAntennas, featureData]);
+      showSuccess('Зональная антенна добавлена вручную!');
     }
     // Оставляем активное взаимодействие, чтобы можно было добавлять несколько объектов
-  }, [actions, barriers, zones, switches, cableDucts]);
+  }, [actions, barriers, zones, switches, cableDucts, zoneAntennas]);
 
-  const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[] | Coordinate[][]) => {
+  const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier' | 'zoneAntenna', id: string, newPosition: Coordinate | Coordinate[] | Coordinate[][]) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.map(b => b.id === id ? { ...b, position: newPosition as Coordinate } : b));
       showSuccess('Позиция маяка обновлена!');
@@ -85,11 +91,14 @@ const ZoneTracking: React.FC = () => {
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.map(c => c.id === id ? { ...c, path: newPosition as Coordinate[] } : c));
       showSuccess('Кабель-канал обновлен!');
+    } else if (type === 'zoneAntenna') { // Обработка редактирования зональной антенны
+      actions.setZoneAntennas(zoneAntennas.map(za => za.id === id ? { ...za, position: newPosition as Coordinate } : za));
+      showSuccess('Позиция зональной антенны обновлена!');
     }
     // Оставляем активное взаимодействие
-  }, [actions, beacons, antennas, switches, cableDucts]);
+  }, [actions, beacons, antennas, switches, cableDucts, zoneAntennas]);
 
-  const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string) => {
+  const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct' | 'zoneAntenna', id: string) => {
     if (type === 'beacon') {
       actions.setBeacons(beacons.filter(b => b.id !== id));
       showSuccess('Маяк удален!');
@@ -108,9 +117,12 @@ const ZoneTracking: React.FC = () => {
     } else if (type === 'cableDuct') {
       actions.setCableDucts(cableDucts.filter(c => c.id !== id));
       showSuccess('Кабель-канал удален!');
+    } else if (type === 'zoneAntenna') { // Обработка удаления зональной антенны
+      actions.setZoneAntennas(zoneAntennas.filter(za => za.id !== id));
+      showSuccess('Зональная антенна удалена!');
     }
     // Оставляем активное взаимодействие
-  }, [actions, beacons, antennas, zones, barriers, switches, cableDucts]);
+  }, [actions, beacons, antennas, zones, barriers, switches, cableDucts, zoneAntennas]);
 
   const handleRescaleDrawEnd = useCallback((drawnLength: number) => {
     setDrawnLengthForRescale(drawnLength);
@@ -148,13 +160,17 @@ const ZoneTracking: React.FC = () => {
         ...c,
         path: c.path.map(coord => [coord[0] * scaleFactor, coord[1] * scaleFactor] as Coordinate),
       })));
+      actions.setZoneAntennas(zoneAntennas.map(za => ({ // Ремасштабирование зональных антенн
+        ...za,
+        position: [za.position[0] * scaleFactor, za.position[1] * scaleFactor] as Coordinate,
+      })));
 
       showSuccess(`Карта ремасштабирована. Новые размеры: ${newWidth.toFixed(2)}м x ${newHeight.toFixed(2)}м`);
     } else {
       showError('Некорректные значения для ремасштабирования.');
     }
     setIsRescaleDialogOpen(false);
-  }, [drawnLengthForRescale, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, actions]);
+  }, [drawnLengthForRescale, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, zoneAntennas, actions]);
 
   const handleSaveConfiguration = useCallback(() => {
     if (!mapImageSrc || mapWidthMeters <= 0 || mapHeightMeters <= 0) {
@@ -172,6 +188,7 @@ const ZoneTracking: React.FC = () => {
       zones,
       switches,
       cableDucts,
+      zoneAntennas, // Сохранение зональных антенн
       cablePricePerMeter,
       defaultBeaconPrice: beaconPrice,
       defaultAntennaPrice: antennaPrice,
@@ -193,7 +210,7 @@ const ZoneTracking: React.FC = () => {
       console.error('Ошибка при сохранении конфигурации в файл:', error);
       showError('Не удалось сохранить конфигурацию карты в файл.');
     }
-  }, [mapImageSrc, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, cablePricePerMeter, beaconPrice, antennaPrice]);
+  }, [mapImageSrc, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, zoneAntennas, cablePricePerMeter, beaconPrice, antennaPrice]);
 
   const handleAutoCalculateZones = () => {
     if (zoneSizeInput <= 0) {
@@ -202,9 +219,9 @@ const ZoneTracking: React.FC = () => {
     }
 
     const newZones: Zone[] = [];
-    const autoGeneratedBeacons: typeof beacons = [];
+    const newZoneAntennas: typeof zoneAntennas = []; // Используем ZoneAntennas
     let currentZoneId = zones.length > 0 ? Math.max(...zones.map(z => parseInt(z.id.split('-')[1]))) + 1 : 1;
-    let currentBeaconId = beacons.length > 0 ? Math.max(...beacons.map(b => parseInt(b.id.split('-')[1]))) + 1 : 1;
+    let currentZoneAntennaId = zoneAntennas.length > 0 ? Math.max(...zoneAntennas.map(za => parseInt(za.id.split('-')[1]))) + 1 : 1;
 
     for (let y = 0; y < mapHeightMeters; y += zoneSizeInput) {
       for (let x = 0; x < mapWidthMeters; x += zoneSizeInput) {
@@ -224,29 +241,33 @@ const ZoneTracking: React.FC = () => {
         const olPolygon = new Polygon([polygonCoords]);
         const centerCoordinate = olPolygon.getInteriorPoint().getCoordinates();
 
-        newZones.push({
-          id: `zone-${currentZoneId++}`,
-          polygon: [polygonCoords],
-          beaconCount: 1,
-        });
+        // Проверка на пересечение с барьерами
+        if (!isPointInsideAnyBarrier(centerCoordinate, barriers)) {
+          newZones.push({
+            id: `zone-${currentZoneId++}`,
+            polygon: [polygonCoords],
+            beaconCount: 1, // Количество маяков в зоне (для отображения)
+          });
 
-        autoGeneratedBeacons.push({
-          id: `beacon-${currentBeaconId++}`,
-          position: centerCoordinate,
-          price: beaconPrice,
-        });
+          newZoneAntennas.push({ // Создаем зональную антенну
+            id: `zoneAntenna-${currentZoneAntennaId++}`,
+            position: centerCoordinate,
+            price: antennaPrice, // Используем цену антенны для зональной антенны
+          });
+        }
       }
     }
     actions.setZones(newZones);
-    actions.setBeacons([...beacons, ...autoGeneratedBeacons]);
-    showSuccess(`Автоматически создано ${newZones.length} зон и ${autoGeneratedBeacons.length} маяков.`);
+    actions.setZoneAntennas(newZoneAntennas); // Устанавливаем зональные антенны
+    showSuccess(`Автоматически создано ${newZones.length} зон и ${newZoneAntennas.length} зональных антенн.`);
     setActiveInteraction(null);
   };
 
   const handleClearZonesAndBeacons = () => {
     actions.setZones([]);
-    actions.setBeacons([]);
-    showSuccess('Все зоны и маяки удалены.');
+    actions.setBeacons([]); // Очищаем и обычные маяки, если они есть
+    actions.setZoneAntennas([]); // Очищаем зональные антенны
+    showSuccess('Все зоны, маяки и зональные антенны удалены.');
     setActiveInteraction(null);
   };
 
@@ -278,7 +299,7 @@ const ZoneTracking: React.FC = () => {
           <>
             <p className="mb-2">На этой странице вы можете создавать и управлять зонами отслеживания на вашей карте.</p>
             <p className="mb-2">Используйте инструменты рисования для добавления зон вручную, а также барьеров, коммутаторов и кабель-каналов.</p>
-            <p className="mb-2">Функция "Авторасчет зон" позволяет автоматически разместить зоны по всей карте с заданным размером, а также добавить маяки в центр каждой зоны.</p>
+            <p className="mb-2">Функция "Авторасчет зон" позволяет автоматически разместить зоны по всей карте с заданным размером, а также добавить зональные антенны в центр каждой зоны, избегая барьеров.</p>
             <p>Не забудьте сохранить вашу конфигурацию, чтобы не потерять изменения!</p>
           </>
         }
@@ -301,6 +322,7 @@ const ZoneTracking: React.FC = () => {
                 zones={zones}
                 switches={switches}
                 cableDucts={cableDucts}
+                zoneAntennas={zoneAntennas} // Передаем зональные антенны
                 showBeacons={showBeacons}
                 showAntennas={showAntennas}
                 showBarriers={showBarriers}
@@ -309,6 +331,7 @@ const ZoneTracking: React.FC = () => {
                 showSwitches={showSwitches}
                 showCableDucts={showCableDucts}
                 showCableDuctLengths={showCableDuctLengths}
+                showZoneAntennas={showZoneAntennas} // Передаем состояние видимости
                 activeInteraction={activeInteraction}
                 onFeatureAdd={handleFeatureAdd}
                 onFeatureModify={handleFeatureModify}
@@ -353,6 +376,54 @@ const ZoneTracking: React.FC = () => {
                       <p>Удалить нарисованную зону с карты.</p>
                     </TooltipContent>
                   </Tooltip>
+
+                  {/* Новые кнопки для зональных антенн */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('manualZoneAntenna')}
+                        variant={activeInteraction === 'manualZoneAntenna' ? 'default' : 'outline'}
+                        className="flex items-center justify-start gap-2 px-4 h-10"
+                      >
+                        <AntennaIcon className="h-4 w-4" />
+                        <span className="truncate text-xs sm:text-sm">Добавить зон. антенну</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Добавить новую зональную антенну на карту, кликнув по желаемому месту.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('editZoneAntenna')}
+                        variant={activeInteraction === 'editZoneAntenna' ? 'default' : 'outline'}
+                        className="flex items-center justify-start gap-2 px-4 h-10"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        <span className="truncate text-xs sm:text-sm">Редактировать зон. антенну</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Переместить существующую зональную антенну на карте.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => handleInteractionChange('deleteZoneAntenna')}
+                        variant={activeInteraction === 'deleteZoneAntenna' ? 'destructive' : 'outline'}
+                        className="flex items-center justify-start gap-2 px-4 h-10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="truncate text-xs sm:text-sm">Удалить зон. антенну</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Удалить зональную антенну с карты, кликнув по ней.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  {/* Конец новых кнопок для зональных антенн */}
 
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -554,8 +625,7 @@ const ZoneTracking: React.FC = () => {
                     type="number"
                     value={zoneSizeInput === 0 ? '' : zoneSizeInput}
                     onChange={(e) => setZoneSizeInput(Number(e.target.value))}
-                    step="0.1" // Разрешаем десятичные значения
-                    // min="1" удален, так как валидация уже есть в handleAutoCalculateZones
+                    step="0.1"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -566,17 +636,17 @@ const ZoneTracking: React.FC = () => {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Автоматически создает зоны заданного размера по всей карте и размещает маяки в их центрах.</p>
+                      <p>Автоматически создает зоны заданного размера по всей карте и размещает зональные антенны в их центрах, избегая барьеров.</p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button onClick={handleClearZonesAndBeacons} variant="destructive" className="w-full">
-                        <span className="truncate text-xs sm:text-sm">Очистить зоны и маяки</span>
+                        <span className="truncate text-xs sm:text-sm">Очистить зоны и антенны</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Удаляет все зоны и маяки с карты.</p>
+                      <p>Удаляет все зоны, маяки и зональные антенны с карты.</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -593,7 +663,7 @@ const ZoneTracking: React.FC = () => {
                       value={beaconPrice === 0 ? '' : beaconPrice}
                       onChange={(e) => actions.setBeaconPrice(Number(e.target.value))}
                       min="0"
-                      step="0.01" // Разрешаем десятичные значения для цены
+                      step="0.01"
                     />
                   </div>
                   <div className="space-y-2">
@@ -604,7 +674,7 @@ const ZoneTracking: React.FC = () => {
                       value={antennaPrice === 0 ? '' : antennaPrice}
                       onChange={(e) => actions.setAntennaPrice(Number(e.target.value))}
                       min="0"
-                      step="0.01" // Разрешаем десятичные значения для цены
+                      step="0.01"
                     />
                   </div>
                   <div className="space-y-2 col-span-full">
@@ -615,7 +685,7 @@ const ZoneTracking: React.FC = () => {
                       value={cablePricePerMeter === 0 ? '' : cablePricePerMeter}
                       onChange={(e) => actions.setCablePricePerMeter(Number(e.target.value))}
                       min="0"
-                      step="0.01" // Разрешаем десятичные значения для цены
+                      step="0.01"
                     />
                   </div>
                 </div>
@@ -633,6 +703,7 @@ const ZoneTracking: React.FC = () => {
             zones={zones}
             switches={switches}
             cableDucts={cableDucts}
+            zoneAntennas={zoneAntennas} // Передаем зональные антенны
             showBeacons={showBeacons}
             showAntennas={showAntennas}
             showBarriers={showBarriers}
@@ -641,14 +712,7 @@ const ZoneTracking: React.FC = () => {
             showSwitches={showSwitches}
             showCableDucts={showCableDucts}
             showCableDuctLengths={showCableDuctLengths}
-            toggleShowBeacons={actions.toggleShowBeacons}
-            toggleShowAntennas={actions.toggleShowAntennas}
-            toggleShowBarriers={actions.toggleShowBarriers}
-            toggleShowAntennaRanges={actions.toggleShowAntennaRanges}
-            toggleShowZones={actions.toggleShowZones}
-            toggleShowSwitches={actions.toggleShowSwitches}
-            toggleShowCableDucts={actions.toggleShowCableDucts}
-            toggleShowCableDuctLengths={actions.toggleShowCableDuctLengths}
+            showZoneAntennas={showZoneAntennas} // Передаем состояние видимости
             onSaveConfiguration={handleSaveConfiguration}
             cablePricePerMeter={cablePricePerMeter}
           />
