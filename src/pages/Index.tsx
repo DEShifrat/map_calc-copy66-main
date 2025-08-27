@@ -21,6 +21,7 @@ interface SavedMapConfig {
   zones: any[];
   switches: any[];
   cableDucts: any[];
+  zoneAntennas: any[]; // Добавлено
   cablePricePerMeter?: number;
   defaultBeaconPrice?: number;
   defaultAntennaPrice?: number;

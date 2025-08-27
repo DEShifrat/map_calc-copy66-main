@@ -62,6 +62,12 @@ interface CableDuct {
   type: 'main' | 'connection';
 }
 
+interface ZoneAntenna { // Добавлено
+  id: string;
+  position: Coordinate;
+  price?: number;
+}
+
 interface MapControlsProps {
   mapImageSrc: string | null;
   mapWidthMeters: number;
@@ -72,6 +78,7 @@ interface MapControlsProps {
   zones: Zone[];
   switches: Switch[];
   cableDucts: CableDuct[];
+  zoneAntennas: ZoneAntenna[]; // Добавлено
   showBeacons: boolean;
   showAntennas: boolean;
   showBarriers: boolean;
@@ -80,6 +87,7 @@ interface MapControlsProps {
   showSwitches: boolean;
   showCableDucts: boolean;
   showCableDuctLengths: boolean;
+  showZoneAntennas: boolean; // Добавлено
   toggleShowBeacons: () => void;
   toggleShowAntennas: () => void;
   toggleShowBarriers: () => void;
@@ -88,6 +96,7 @@ interface MapControlsProps {
   toggleShowSwitches: () => void;
   toggleShowCableDucts: () => void;
   toggleShowCableDuctLengths: () => void;
+  toggleShowZoneAntennas: () => void; // Добавлено
   onSaveConfiguration: () => void;
   cablePricePerMeter: number;
 }
@@ -125,6 +134,14 @@ const switchStyle = new Style({
   image: new Icon({
     anchor: [0.5, 1],
     src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="purple" width="24px" height="24px"><path d="M19 1H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2zm-1 14h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zM8 5h8v2H8V5zm0 4h8v2H8V9zm0 4h8v2H8v-2z"/></svg>',
+    scale: 1.5,
+  }),
+});
+
+const zoneAntennaStyle = new Style({ // Новый стиль для зональных антенн
+  image: new Icon({
+    anchor: [0.5, 1],
+    src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="orange" width="24px" height="24px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>',
     scale: 1.5,
   }),
 });
@@ -285,6 +302,7 @@ const MapControls: React.FC<MapControlsProps> = ({
   zones,
   switches,
   cableDucts,
+  zoneAntennas, // Добавлено
   showBeacons,
   showAntennas,
   showBarriers,
@@ -293,6 +311,7 @@ const MapControls: React.FC<MapControlsProps> = ({
   showSwitches,
   showCableDucts,
   showCableDuctLengths,
+  showZoneAntennas, // Добавлено
   toggleShowBeacons,
   toggleShowAntennas,
   toggleShowBarriers,
@@ -301,6 +320,7 @@ const MapControls: React.FC<MapControlsProps> = ({
   toggleShowSwitches,
   toggleShowCableDucts,
   toggleShowCableDuctLengths,
+  toggleShowZoneAntennas, // Добавлено
   onSaveConfiguration,
   cablePricePerMeter,
 }) => {
@@ -392,6 +412,12 @@ const MapControls: React.FC<MapControlsProps> = ({
     });
     exportCableDuctLayer.setVisible(showCableDucts);
 
+    const exportZoneAntennaLayer = new VectorLayer({ // Добавлено
+      source: new VectorSource({ features: zoneAntennas.map(za => new Feature({ geometry: new Point(za.position), id: za.id })) }),
+      style: zoneAntennaStyle,
+    });
+    exportZoneAntennaLayer.setVisible(showZoneAntennas);
+
     const exportMap = new Map({
       target: exportDiv,
       layers: [
@@ -402,6 +428,7 @@ const MapControls: React.FC<MapControlsProps> = ({
         exportZoneLayer,
         exportSwitchLayer,
         exportCableDuctLayer,
+        exportZoneAntennaLayer, // Добавлено
       ],
       view: new View({
         projection: imageProjection,
@@ -528,7 +555,8 @@ const MapControls: React.FC<MapControlsProps> = ({
   // Расчет общей стоимости оборудования
   const totalBeaconCost = beacons.reduce((sum, beacon) => sum + (beacon.price || 0), 0);
   const totalAntennaCost = antennas.reduce((sum, antenna) => sum + (antenna.price || 0), 0);
-  const totalEquipmentCost = totalBeaconCost + totalAntennaCost + totalCableDuctCost;
+  const totalZoneAntennaCost = zoneAntennas.reduce((sum, za) => sum + (za.price || 0), 0); // Добавлено
+  const totalEquipmentCost = totalBeaconCost + totalAntennaCost + totalZoneAntennaCost + totalCableDuctCost; // Обновлено
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -670,6 +698,14 @@ const MapControls: React.FC<MapControlsProps> = ({
           />
           <Label htmlFor="showCableDuctLengths" className="text-xs sm:text-sm">Показать длину кабеля</Label>
         </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="showZoneAntennas" // Добавлено
+            checked={showZoneAntennas}
+            onCheckedChange={(checked) => toggleShowZoneAntennas()}
+          />
+          <Label htmlFor="showZoneAntennas" className="text-xs sm:text-sm">Показать зон. антенны</Label>
+        </div>
       </div>
 
       <div className="p-4 border rounded-md grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -705,6 +741,10 @@ const MapControls: React.FC<MapControlsProps> = ({
         <div>
           <Label>Количество кабель-каналов:</Label>
           <p className="text-lg font-medium">{cableDucts.length}</p>
+        </div>
+        <div>
+          <Label>Количество зон. антенн:</Label> {/* Добавлено */}
+          <p className="text-lg font-medium">{zoneAntennas.length}</p>
         </div>
         <div>
           <Label>Общая длина кабель-канала:</Label>
