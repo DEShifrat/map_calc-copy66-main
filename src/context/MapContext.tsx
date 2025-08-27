@@ -139,8 +139,8 @@ const defaultMapState: MapState = {
   showCableDucts: true,
   showCableDuctLengths: true,
   showZoneAntennas: true, // Инициализация
-  isAutoSaveEnabled: false, // Default to off
-  autoSaveIntervalMinutes: 15, // Default to 15 minutes
+  isAutoSaveEnabled: true, // Default to ON
+  autoSaveIntervalMinutes: 5, // Default to 5 minutes
 };
 
 // Функция для загрузки состояния из localStorage

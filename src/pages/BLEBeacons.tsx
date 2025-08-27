@@ -13,10 +13,11 @@ import { showSuccess, showError } from '@/utils/toast';
 import { Coordinate } from 'ol/coordinate';
 import { isPointInsideAnyBarrier } from '@/lib/utils';
 import {
-  MapPin, Pencil, Trash2, Square, Ruler, X, Undo2, Redo2
+  MapPin, Pencil, Trash2, Square, Ruler, X, Undo2, Redo2, Settings as SettingsIcon // Импорт SettingsIcon
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import OnboardingDialog from '@/components/OnboardingDialog'; // Импорт OnboardingDialog
+import SettingsDialog from '@/components/SettingsDialog'; // Импорт SettingsDialog
 
 const BLEBeacons: React.FC = () => {
   const { state, actions } = useMap();
@@ -259,8 +260,15 @@ const BLEBeacons: React.FC = () => {
         localStorageKey="onboarding_ble_beacons_page"
       />
       <Card className="w-full max-w-6xl shadow-lg bg-gray-100 dark:bg-gray-900 mb-4">
-        <CardHeader>
+        <CardHeader className="relative"> {/* Add relative positioning for absolute button */}
           <CardTitle className="text-2xl font-bold text-center">BLE маяки</CardTitle>
+          <div className="absolute top-4 right-4"> {/* Position the settings button */}
+            <SettingsDialog>
+              <Button variant="outline" size="icon">
+                <SettingsIcon className="h-4 w-4" />
+              </Button>
+            </SettingsDialog>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

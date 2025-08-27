@@ -13,10 +13,11 @@ import { Coordinate } from 'ol/coordinate';
 import Polygon from 'ol/geom/Polygon';
 import { isPointInsideAnyBarrier } from '@/lib/utils'; // Импорт isPointInsideAnyBarrier
 import {
-  Square, Trash2, Target, Router, Pencil, Cable, Ruler, X, Undo2, Redo2, Antenna as AntennaIcon // Импорт AntennaIcon
+  Square, Trash2, Target, Router, Pencil, Cable, Ruler, X, Undo2, Redo2, Antenna as AntennaIcon, Settings as SettingsIcon // Импорт SettingsIcon
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import OnboardingDialog from '@/components/OnboardingDialog';
+import SettingsDialog from '@/components/SettingsDialog'; // Импорт SettingsDialog
 
 const ZoneTracking: React.FC = () => {
   const { state, actions } = useMap();
@@ -306,8 +307,15 @@ const ZoneTracking: React.FC = () => {
         localStorageKey="onboarding_zone_tracking_page"
       />
       <Card className="w-full max-w-6xl shadow-lg bg-gray-100 dark:bg-gray-900 mb-4">
-        <CardHeader>
+        <CardHeader className="relative"> {/* Add relative positioning for absolute button */}
           <CardTitle className="text-2xl font-bold text-center">Зональный трекинг</CardTitle>
+          <div className="absolute top-4 right-4"> {/* Position the settings button */}
+            <SettingsDialog>
+              <Button variant="outline" size="icon">
+                <SettingsIcon className="h-4 w-4" />
+              </Button>
+            </SettingsDialog>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

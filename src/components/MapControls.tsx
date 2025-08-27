@@ -325,7 +325,7 @@ const MapControls: React.FC<MapControlsProps> = ({
   cablePricePerMeter,
 }) => {
   const { state, actions } = useMap(); // Используем useMap для доступа к состоянию и действиям
-  const { isAutoSaveEnabled, autoSaveIntervalMinutes } = state;
+  // isAutoSaveEnabled и autoSaveIntervalMinutes теперь управляются через SettingsDialog
 
   const [exportResolutionInput, setExportResolutionInput] = useState<number>(2); // Дефолтное значение 2
 
@@ -596,40 +596,6 @@ const MapControls: React.FC<MapControlsProps> = ({
         <Button onClick={onSaveConfiguration} variant="default" className="w-full">
           Сохранить конфигурацию
         </Button>
-
-        <div className="w-full border-t pt-4 mt-4 flex flex-col gap-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="autoSaveEnabled"
-              checked={isAutoSaveEnabled}
-              onCheckedChange={(checked) => actions.toggleAutoSave()}
-            />
-            <Label htmlFor="autoSaveEnabled" className="text-sm">Автосохранение конфигурации</Label>
-          </div>
-          <div className="flex items-center gap-2 mt-2">
-            <Label htmlFor="autoSaveInterval">Интервал автосохранения (минуты)</Label>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <HelpCircle className="h-4 w-4 text-gray-500 cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Частота, с которой конфигурация карты будет автоматически сохраняться в локальное хранилище браузера.</p>
-                <p className="mt-1 font-semibold">Рекомендуемые значения: 5, 10, 15, 30.</p>
-                <p>Установите 0, чтобы отключить автосохранение.</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <Input
-            id="autoSaveInterval"
-            type="number"
-            value={autoSaveIntervalMinutes === 0 ? '' : autoSaveIntervalMinutes}
-            onChange={(e) => actions.setAutoSaveInterval(Number(e.target.value))}
-            min="1"
-            step="1"
-            disabled={!isAutoSaveEnabled}
-            className="w-full"
-          />
-        </div>
       </div>
 
       <div className="p-4 border rounded-md grid grid-cols-1 sm:grid-cols-2 gap-4">
