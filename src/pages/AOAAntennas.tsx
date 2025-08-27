@@ -58,6 +58,7 @@ const AOAAntennas: React.FC = () => {
     zones,
     switches,
     cableDucts,
+    zoneAntennas, // Добавлено
     showBeacons,
     showAntennas,
     showBarriers,
@@ -66,6 +67,7 @@ const AOAAntennas: React.FC = () => {
     showSwitches,
     showCableDucts,
     showCableDuctLengths,
+    showZoneAntennas, // Добавлено
     beaconPrice,
     antennaPrice,
     cablePricePerMeter,
@@ -89,7 +91,7 @@ const AOAAntennas: React.FC = () => {
     setActiveInteraction(prev => (prev === interaction ? null : interaction));
   };
 
-  const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct', featureData: any) => {
+  const handleFeatureAdd = useCallback((type: 'beacon' | 'antenna' | 'barrier' | 'zone' | 'switch' | 'cableDuct' | 'zoneAntenna', featureData: any) => {
     if (type === 'antenna') {
       actions.setAntennas([...antennas, { ...featureData, range: calculatedAntennaRange }]);
       showSuccess('Антенна добавлена вручную!');
@@ -106,7 +108,7 @@ const AOAAntennas: React.FC = () => {
     // Оставляем активное взаимодействие, чтобы можно было добавлять несколько объектов
   }, [actions, antennas, barriers, switches, cableDucts, calculatedAntennaRange]);
 
-  const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier', id: string, newPosition: Coordinate | Coordinate[] | Coordinate[][]) => {
+  const handleFeatureModify = useCallback((type: 'beacon' | 'antenna' | 'switch' | 'cableDuct' | 'barrier' | 'zoneAntenna', id: string, newPosition: Coordinate | Coordinate[] | Coordinate[][]) => {
     if (type === 'antenna') {
       actions.setAntennas(antennas.map(a => a.id === id ? { ...a, position: newPosition as Coordinate } : a));
       showSuccess('Позиция антенны обновлена!');
@@ -124,7 +126,7 @@ const AOAAntennas: React.FC = () => {
     // Оставляем активное взаимодействие
   }, [actions, antennas, switches, cableDucts]);
 
-  const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct', id: string, segmentIndex?: number) => {
+  const handleFeatureDelete = useCallback((type: 'beacon' | 'antenna' | 'zone' | 'barrier' | 'switch' | 'cableDuct' | 'zoneAntenna', id: string, segmentIndex?: number) => {
     if (type === 'antenna') {
       actions.setAntennas(antennas.filter(a => a.id !== id));
       showSuccess('Антенна удалена!');
@@ -182,13 +184,17 @@ const AOAAntennas: React.FC = () => {
         ...c,
         path: c.path.map(coord => [coord[0] * scaleFactor, coord[1] * scaleFactor] as Coordinate),
       })));
+      actions.setZoneAntennas(zoneAntennas.map(za => ({
+        ...za,
+        position: [za.position[0] * scaleFactor, za.position[1] * scaleFactor] as Coordinate,
+      })));
 
       showSuccess(`Карта ремасштабирована. Новые размеры: ${newWidth.toFixed(2)}м x ${newHeight.toFixed(2)}м`);
     } else {
       showError('Некорректные значения для ремасштабирования.');
     }
     setIsRescaleDialogOpen(false);
-  }, [drawnLengthForRescale, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, actions]);
+  }, [drawnLengthForRescale, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, zoneAntennas, actions]);
 
   const handleSaveConfiguration = useCallback(() => {
     if (!mapImageSrc || mapWidthMeters <= 0 || mapHeightMeters <= 0) {
@@ -206,6 +212,7 @@ const AOAAntennas: React.FC = () => {
       zones,
       switches,
       cableDucts,
+      zoneAntennas,
       cablePricePerMeter,
       defaultBeaconPrice: beaconPrice,
       defaultAntennaPrice: antennaPrice,
@@ -227,7 +234,7 @@ const AOAAntennas: React.FC = () => {
       console.error('Ошибка при сохранении конфигурации в файл:', error);
       showError('Не удалось сохранить конфигурацию карты в файл.');
     }
-  }, [mapImageSrc, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, cablePricePerMeter, beaconPrice, antennaPrice]);
+  }, [mapImageSrc, mapWidthMeters, mapHeightMeters, beacons, antennas, barriers, zones, switches, cableDucts, zoneAntennas, cablePricePerMeter, beaconPrice, antennaPrice]);
 
   const handleAutoCalculateAntennas = () => {
     if (antennaPlacementStepInput <= 0) {
@@ -392,6 +399,7 @@ const AOAAntennas: React.FC = () => {
                 zones={zones}
                 switches={switches}
                 cableDucts={cableDucts}
+                zoneAntennas={zoneAntennas}
                 showBeacons={showBeacons}
                 showAntennas={showAntennas}
                 showBarriers={showBarriers}
@@ -400,6 +408,7 @@ const AOAAntennas: React.FC = () => {
                 showSwitches={showSwitches}
                 showCableDucts={showCableDucts}
                 showCableDuctLengths={showCableDuctLengths}
+                showZoneAntennas={showZoneAntennas}
                 activeInteraction={activeInteraction}
                 onFeatureAdd={handleFeatureAdd}
                 onFeatureModify={handleFeatureModify}
@@ -784,6 +793,7 @@ const AOAAntennas: React.FC = () => {
             zones={zones}
             switches={switches}
             cableDucts={cableDucts}
+            zoneAntennas={zoneAntennas}
             showBeacons={showBeacons}
             showAntennas={showAntennas}
             showBarriers={showBarriers}
@@ -792,6 +802,7 @@ const AOAAntennas: React.FC = () => {
             showSwitches={showSwitches}
             showCableDucts={showCableDucts}
             showCableDuctLengths={showCableDuctLengths}
+            showZoneAntennas={showZoneAntennas}
             toggleShowBeacons={actions.toggleShowBeacons}
             toggleShowAntennas={actions.toggleShowAntennas}
             toggleShowBarriers={actions.toggleShowBarriers}
@@ -800,6 +811,7 @@ const AOAAntennas: React.FC = () => {
             toggleShowSwitches={actions.toggleShowSwitches}
             toggleShowCableDucts={actions.toggleShowCableDucts}
             toggleShowCableDuctLengths={actions.toggleShowCableDuctLengths}
+            toggleShowZoneAntennas={actions.toggleShowZoneAntennas}
             onSaveConfiguration={handleSaveConfiguration}
             cablePricePerMeter={cablePricePerMeter}
           />

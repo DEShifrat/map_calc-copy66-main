@@ -322,7 +322,7 @@ const ZoneTracking: React.FC = () => {
                 zones={zones}
                 switches={switches}
                 cableDucts={cableDucts}
-                zoneAntennas={zoneAntennas} // Передаем зональные антенны
+                zoneAntennas={zoneAntennas}
                 showBeacons={showBeacons}
                 showAntennas={showAntennas}
                 showBarriers={showBarriers}
@@ -331,7 +331,7 @@ const ZoneTracking: React.FC = () => {
                 showSwitches={showSwitches}
                 showCableDucts={showCableDucts}
                 showCableDuctLengths={showCableDuctLengths}
-                showZoneAntennas={showZoneAntennas} // Передаем состояние видимости
+                showZoneAntennas={showZoneAntennas}
                 activeInteraction={activeInteraction}
                 onFeatureAdd={handleFeatureAdd}
                 onFeatureModify={handleFeatureModify}
@@ -703,7 +703,7 @@ const ZoneTracking: React.FC = () => {
             zones={zones}
             switches={switches}
             cableDucts={cableDucts}
-            zoneAntennas={zoneAntennas} // Передаем зональные антенны
+            zoneAntennas={zoneAntennas}
             showBeacons={showBeacons}
             showAntennas={showAntennas}
             showBarriers={showBarriers}
@@ -712,7 +712,16 @@ const ZoneTracking: React.FC = () => {
             showSwitches={showSwitches}
             showCableDucts={showCableDucts}
             showCableDuctLengths={showCableDuctLengths}
-            showZoneAntennas={showZoneAntennas} // Передаем состояние видимости
+            showZoneAntennas={showZoneAntennas}
+            toggleShowBeacons={actions.toggleShowBeacons}
+            toggleShowAntennas={actions.toggleShowAntennas}
+            toggleShowBarriers={actions.toggleShowBarriers}
+            toggleShowAntennaRanges={actions.toggleShowAntennaRanges}
+            toggleShowZones={actions.toggleShowZones}
+            toggleShowSwitches={actions.toggleShowSwitches}
+            toggleShowCableDucts={actions.toggleShowCableDucts}
+            toggleShowCableDuctLengths={actions.toggleShowCableDuctLengths}
+            toggleShowZoneAntennas={actions.toggleShowZoneAntennas}
             onSaveConfiguration={handleSaveConfiguration}
             cablePricePerMeter={cablePricePerMeter}
           />
