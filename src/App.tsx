@@ -10,7 +10,8 @@ import ZoneTracking from "./pages/ZoneTracking";
 import BLEBeacons from "./pages/BLEBeacons";
 import AOAAntennas from "./pages/AOAAntennas";
 import { MapProvider, useMap } from "./context/MapContext";
-import React, { useEffect, useRef } from "react"; // Импорт useRef
+import React, { useEffect, useRef } from "react";
+import { showSuccess } from "./utils/toast"; // Импорт showSuccess
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const AutoSaveManager = () => {
     if (isAutoSaveEnabled && autoSaveIntervalMinutes > 0) {
       const intervalId = setInterval(() => {
         actions.saveMapConfigurationToLocalStorage();
+        showSuccess('Конфигурация карты автоматически сохранена.'); // Показываем уведомление
       }, autoSaveIntervalMinutes * 60 * 1000); // Минуты в миллисекунды
       intervalRef.current = intervalId as unknown as number; // Приведение типа для setInterval
     }
